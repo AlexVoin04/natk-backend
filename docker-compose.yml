@@ -1,0 +1,57 @@
+services:
+  db:
+    image: postgres:17
+    container_name: natk_db
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init-db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - natk-net
+
+  natk-auth:
+    image: 'natk-auth:0.0.1'
+    build: ./natk-auth
+    environment:
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - JDBC_URL=${JDBC_URL}
+      - DB_DRIVER=${DB_DRIVER}
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      - db
+    ports:
+      - "8001:8080"
+    networks:
+      - natk-net
+
+  natk-api:
+    image: 'natk-api:0.0.1'
+    build: ./natk-api
+    environment:
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - JDBC_URL=${JDBC_URL}
+      - DB_DRIVER=${DB_DRIVER}
+      - JWT_SECRET=${JWT_SECRET}
+    ports:
+      - "8000:8080"
+    depends_on:
+      - db
+      - natk-auth
+    networks:
+      - natk-net
+
+volumes:
+  pgdata:
+
+networks:
+  natk-net:
+    driver: bridge
