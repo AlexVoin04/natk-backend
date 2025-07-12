@@ -50,24 +50,22 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             log.info("user: userId={}", userId);
         } catch (Exception e) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            log.info("user: UNAUTHORIZED");
             return;
         }
 
         if (SecurityContextHolder.getContext().getAuthentication() == null) {
             var user = userRepository.findById(userId);
             if (user.isPresent()) {
-                log.info("user: userName={}", user.get().getName());
                 var customUserDetails = new CustomUserDetails(user.get());
                 var authToken = new UsernamePasswordAuthenticationToken(
                         customUserDetails, null, customUserDetails.getAuthorities()
                 );
-                log.info("authToken ={}", authToken.getCredentials());
                 authToken.setDetails(
                         new WebAuthenticationDetailsSource().buildDetails(request)
                 );
                 log.info("getDetails ={}", authToken.getDetails());
                 SecurityContextHolder.getContext().setAuthentication(authToken);
-                log.info("Authenticated user: {}", SecurityContextHolder.getContext().getAuthentication().getPrincipal());
             }
         }
 

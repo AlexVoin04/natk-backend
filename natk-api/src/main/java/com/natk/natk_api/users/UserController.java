@@ -1,8 +1,6 @@
 package com.natk.natk_api.users;
 
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -10,13 +8,21 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/users")
 public class UserController {
     private final UserService userService;
+    private final UserMapper userMapper;
 
-    public UserController(UserService userService) {
+    public UserController(UserService userService, UserMapper userMapper) {
         this.userService = userService;
+        this.userMapper = userMapper;
     }
 
+//    @GetMapping("/me")
+//    public UserEntity getCurrentUser() {
+//        return userService.getCurrentUser();
+//    }
+
     @GetMapping("/me")
-    public User getCurrentUser() {
-        return userService.getCurrentUser();
+    public UserDto getCurrentUser() {
+        UserEntity userEntity = userService.getCurrentUser();
+        return userMapper.toDto(userEntity);
     }
 }
