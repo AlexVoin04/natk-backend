@@ -28,8 +28,8 @@ public class AuthService {
         user.setId(UUID.randomUUID());
         user.setLogin(dto.login());
         user.setPassword(passwordEncoder.encode(dto.password()));
-        user.setName("John");
-        user.setSurname("Doe");
+        user.setName(dto.name());
+        user.setSurname(dto.surname());
         userRepository.save(user);
         log.info("Registered new user: username='{}', userId={}", user.getName(), user.getId());
     }

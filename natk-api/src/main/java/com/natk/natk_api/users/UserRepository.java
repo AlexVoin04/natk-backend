@@ -1,6 +1,5 @@
-package com.natk.natk_api.repository;
+package com.natk.natk_api.users;
 
-import com.natk.natk_api.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.UUID;

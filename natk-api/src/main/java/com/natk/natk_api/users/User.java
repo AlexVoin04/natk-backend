@@ -1,4 +1,4 @@
-package com.natk.natk_api.entity;
+package com.natk.natk_api.users;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
