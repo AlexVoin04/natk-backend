@@ -4,8 +4,9 @@ import com.example.natk_auth.dto.TokenDto;
 import com.example.natk_auth.dto.UserCredentialsDto;
 import com.example.natk_auth.dto.UserDto;
 import com.example.natk_auth.entity.User;
-import com.example.natk_auth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import com.example.natk_auth.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -13,12 +14,13 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
-    public User register(UserCredentialsDto dto) {
+    public void register(UserCredentialsDto dto) {
         if (userRepository.findByLogin(dto.login()).isPresent())
             throw new IllegalArgumentException("User already exists");
 
@@ -29,10 +31,11 @@ public class AuthService {
         user.setName("John");
         user.setSurname("Doe");
         userRepository.save(user);
-        return user;
+        log.info("Registered new user: username='{}', userId={}", user.getName(), user.getId());
     }
 
     public TokenDto login(UserCredentialsDto dto) {
+        log.info("Login attempt: username='{}'", dto.login());
         User user = userRepository.findByLogin(dto.login())
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
@@ -46,5 +49,10 @@ public class AuthService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         return new UserDto(user.getId(), user.getName(), user.getSurname());
+    }
+
+    public User findUserById(UUID userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
     }
 }
