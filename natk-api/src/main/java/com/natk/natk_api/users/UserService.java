@@ -5,12 +5,15 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class UserService {
-
+    private final UserRepository userRepository;
 
     public UserService(JwtService jwtService, UserRepository userRepository) {
 
+        this.userRepository = userRepository;
     }
 
     public UserEntity getCurrentUser() {
@@ -22,4 +25,7 @@ public class UserService {
     }
 
 
+    public List<UserEntity> getAllUsers() {
+        return userRepository.findAll();
+    }
 }
