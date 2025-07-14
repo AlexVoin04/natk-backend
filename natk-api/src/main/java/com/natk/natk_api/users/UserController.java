@@ -15,11 +15,6 @@ public class UserController {
         this.userMapper = userMapper;
     }
 
-//    @GetMapping("/me")
-//    public UserEntity getCurrentUser() {
-//        return userService.getCurrentUser();
-//    }
-
     @GetMapping("/me")
     public UserDto getCurrentUser() {
         UserEntity userEntity = userService.getCurrentUser();

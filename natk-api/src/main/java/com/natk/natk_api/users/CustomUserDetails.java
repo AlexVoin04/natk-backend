@@ -23,12 +23,12 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.emptyList(); // добавить роли, если нужно
+        return Collections.emptyList();
     }
 
     @Override
     public String getPassword() {
-        return ""; // если нужно, можешь вернуть user.getPassword()
+        return "";
     }
 
     @Override

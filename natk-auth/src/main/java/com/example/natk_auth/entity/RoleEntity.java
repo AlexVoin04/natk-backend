@@ -1,4 +1,4 @@
-package com.natk.natk_api.users;
+package com.example.natk_auth.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
