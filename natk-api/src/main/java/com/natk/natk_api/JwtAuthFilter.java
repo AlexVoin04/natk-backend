@@ -15,7 +15,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.UUID;
 
 @Component
@@ -36,39 +35,63 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
+        String token = extractToken(request);
+        if (token == null) {
+            sendAuthError(response, request);
+            return;
+        }
+
+        UUID userId = validateTokenAndExtractUserId(token);
+        if (userId == null) {
+            sendAuthError(response, request);
+            return;
+        }
+
+        authenticateUserIfNecessary(userId, request);
+        filterChain.doFilter(request, response);
+    }
+
+    private String extractToken(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
+            return null;
         }
+        return authHeader.substring(7);
+    }
 
-        String token = authHeader.substring(7);
-        UUID userId;
-
+    private UUID validateTokenAndExtractUserId(String token) {
         try {
-            userId = jwtService.extractUserId(token);
+            UUID userId = jwtService.extractUserId(token);
             log.info("user: userId={}", userId);
+            return userId;
         } catch (Exception e) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            log.info("user: UNAUTHORIZED");
+            log.warn("Invalid JWT token: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private void authenticateUserIfNecessary(UUID userId, HttpServletRequest request) {
+        if (SecurityContextHolder.getContext().getAuthentication() != null) {
             return;
         }
 
-        if (SecurityContextHolder.getContext().getAuthentication() == null) {
-            var user = userRepository.findById(userId);
-            if (user.isPresent()) {
-                var customUserDetails = new CustomUserDetails(user.get());
-                var authToken = new UsernamePasswordAuthenticationToken(
-                        customUserDetails, null, customUserDetails.getAuthorities()
-                );
-                authToken.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request)
-                );
-                log.info("getDetails ={}", authToken.getDetails());
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-            }
-        }
+        userRepository.findById(userId).ifPresent(user -> {
+            var userDetails = new CustomUserDetails(user);
+            var authToken = new UsernamePasswordAuthenticationToken(
+                    userDetails, null, userDetails.getAuthorities()
+            );
+            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authToken);
+        });
+    }
 
-        filterChain.doFilter(request, response);
+    private void sendAuthError(HttpServletResponse response, HttpServletRequest request) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        ErrorResponse.writeToResponse(
+                request,
+                response,
+                "Unauthorized",
+                "JWT Authentication Failed"
+        );
     }
 }

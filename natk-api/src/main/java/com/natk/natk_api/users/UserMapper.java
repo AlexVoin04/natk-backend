@@ -20,6 +20,7 @@ public class UserMapper {
 
         return new UserDto(
                 entity.getId(),
+                entity.getLogin(),
                 entity.getName(),
                 entity.getSurname(),
                 entity.getPatronymic(),
