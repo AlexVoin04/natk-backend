@@ -8,6 +8,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.util.List;
 import java.util.UUID;
@@ -15,10 +16,12 @@ import java.util.UUID;
 @Service
 public class UserService {
     private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
 
-    public UserService(JwtService jwtService, UserRepository userRepository) {
+    public UserService(JwtService jwtService, UserRepository userRepository, RoleRepository roleRepository) {
 
         this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
     }
 
     public UserEntity getCurrentUser() {
@@ -53,5 +56,37 @@ public class UserService {
     public UserEntity getUserById(UUID id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    }
+
+    public UserEntity updateUser(UUID id, UserUpdateDto dto) {
+        UserEntity currentUser = getCurrentUser();
+        UserEntity userToUpdate = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        boolean isAdmin = currentUser.getRoles().stream()
+                .anyMatch(role -> role.getName().equalsIgnoreCase("ADMIN"));
+
+        boolean isSelf = currentUser.getId().equals(userToUpdate.getId());
+
+        if (!isSelf && !isAdmin) {
+            throw new AccessDeniedException("You can only update your own profile");
+        }
+
+        if (dto.name() != null) userToUpdate.setName(dto.name());
+        if (dto.surname() != null) userToUpdate.setSurname(dto.surname());
+        if (dto.patronymic() != null) userToUpdate.setPatronymic(dto.patronymic());
+        if (dto.phoneNumber() != null) userToUpdate.setPhoneNumber(dto.phoneNumber());
+
+        // админ может менять роли
+        if (isAdmin && dto.roles() != null) {
+            List<RoleEntity> newRoles = dto.roles().stream()
+                    .map(roleName -> roleRepository.findByName(roleName)
+                            .orElseThrow(() -> new IllegalArgumentException("Invalid role: " + roleName)))
+                    .toList();
+            userToUpdate.getRoles().clear();
+            userToUpdate.getRoles().addAll(newRoles);
+        }
+
+        return userRepository.save(userToUpdate);
     }
 }
