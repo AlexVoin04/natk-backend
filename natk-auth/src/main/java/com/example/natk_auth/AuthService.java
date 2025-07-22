@@ -41,6 +41,7 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(dto.password()));
         user.setName(dto.name());
         user.setSurname(dto.surname());
+        user.setPatronymic(dto.patronymic() != null ? dto.patronymic() : null);
         return user;
     }
 
@@ -60,10 +61,10 @@ public class AuthService {
     public TokenDto login(UserCredentialsDto dto) {
         log.info("Login attempt: username='{}'", dto.login());
         UserEntity user = userRepository.findByLogin(dto.login())
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new InvalidCredentialsException("Invalid login or password"));
 
         if (!passwordEncoder.matches(dto.password(), user.getPassword()))
-            throw new IllegalArgumentException("Invalid credentials");
+            throw new InvalidCredentialsException("Invalid login or password");
 
         return new TokenDto(jwtService.generateToken(user));
     }
@@ -77,5 +78,11 @@ public class AuthService {
     public UserEntity findUserById(UUID userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    }
+
+    public class InvalidCredentialsException extends RuntimeException {
+        public InvalidCredentialsException(String message) {
+            super(message);
+        }
     }
 }

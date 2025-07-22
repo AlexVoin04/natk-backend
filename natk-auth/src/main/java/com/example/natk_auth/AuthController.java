@@ -3,6 +3,7 @@ package com.example.natk_auth;
 import com.example.natk_auth.dto.TokenDto;
 import com.example.natk_auth.dto.UserCredentialsDto;
 import com.example.natk_auth.entity.UserEntity;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,7 +16,7 @@ public class AuthController {
     private final JwtService jwtService;
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody UserCredentialsDto dto) {
+    public ResponseEntity<?> register(@Valid @RequestBody UserCredentialsDto dto) {
         authService.register(dto);
         return ResponseEntity.ok().build();
     }
