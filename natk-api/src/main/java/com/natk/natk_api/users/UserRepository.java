@@ -10,10 +10,18 @@ import java.util.UUID;
 
 public interface UserRepository extends JpaRepository<UserEntity, UUID> {
 
-    @Query("SELECT u FROM UserEntity u JOIN u.roles r " +
+//    @Query("SELECT DISTINCT u FROM UserEntity u JOIN u.roles r " +
+//            "WHERE (:role IS NULL OR :role = '' OR r.name = :role) " +
+//            "AND (:name IS NULL OR :name = '' OR LOWER(u.name) LIKE LOWER(CONCAT('%', :name, '%'))) " +
+//            "AND (:surname IS NULL OR :surname = '' OR LOWER(u.surname) LIKE LOWER(CONCAT('%', :surname, '%')))")
+    @Query(value = "SELECT DISTINCT u FROM UserEntity u JOIN u.roles r " +
             "WHERE (:role IS NULL OR :role = '' OR r.name = :role) " +
             "AND (:name IS NULL OR :name = '' OR LOWER(u.name) LIKE LOWER(CONCAT('%', :name, '%'))) " +
-            "AND (:surname IS NULL OR :surname = '' OR LOWER(u.surname) LIKE LOWER(CONCAT('%', :surname, '%')))")
+            "AND (:surname IS NULL OR :surname = '' OR LOWER(u.surname) LIKE LOWER(CONCAT('%', :surname, '%')))",
+            countQuery = "SELECT COUNT(DISTINCT u) FROM UserEntity u JOIN u.roles r " +
+                    "WHERE (:role IS NULL OR :role = '' OR r.name = :role) " +
+                    "AND (:name IS NULL OR :name = '' OR LOWER(u.name) LIKE LOWER(CONCAT('%', :name, '%'))) " +
+                    "AND (:surname IS NULL OR :surname = '' OR LOWER(u.surname) LIKE LOWER(CONCAT('%', :surname, '%')))")
     Page<UserEntity> findByFilters(@Param("role") String role,
                                    @Param("name") String name,
                                    @Param("surname") String surname,

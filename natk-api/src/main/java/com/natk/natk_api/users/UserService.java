@@ -46,7 +46,6 @@ public class UserService {
             Sort sort = direction.equalsIgnoreCase("desc")
                     ? Sort.by(sortBy).descending()
                     : Sort.by(sortBy).ascending();
-            //TODO: надо пофиксить пагинацию
             pageable = PageRequest.of(page, size, sort);
         }
 
