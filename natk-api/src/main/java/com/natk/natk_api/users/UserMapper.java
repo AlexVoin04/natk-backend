@@ -1,5 +1,8 @@
 package com.natk.natk_api.users;
 
+import com.natk.natk_api.users.dto.UserDto;
+import com.natk.natk_api.users.model.RoleEntity;
+import com.natk.natk_api.users.model.UserEntity;
 import org.springframework.stereotype.Component;
 
 import java.util.List;

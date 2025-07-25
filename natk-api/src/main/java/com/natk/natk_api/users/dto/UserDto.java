@@ -1,4 +1,4 @@
-package com.natk.natk_api.users;
+package com.natk.natk_api.users.dto;
 
 import java.util.List;
 import java.util.UUID;

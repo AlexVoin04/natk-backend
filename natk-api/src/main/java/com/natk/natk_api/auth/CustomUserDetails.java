@@ -1,5 +1,6 @@
-package com.natk.natk_api.users;
+package com.natk.natk_api.auth;
 
+import com.natk.natk_api.users.model.UserEntity;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;

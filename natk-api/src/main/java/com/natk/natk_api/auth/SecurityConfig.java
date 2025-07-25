@@ -1,6 +1,5 @@
-package com.natk.natk_api.users;
+package com.natk.natk_api.auth;
 
-import com.natk.natk_api.JwtAuthFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;

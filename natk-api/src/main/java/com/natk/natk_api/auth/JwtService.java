@@ -1,4 +1,4 @@
-package com.natk.natk_api.service;
+package com.natk.natk_api.auth;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

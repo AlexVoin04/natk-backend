@@ -1,8 +1,7 @@
-package com.natk.natk_api;
+package com.natk.natk_api.auth;
 
-import com.natk.natk_api.service.JwtService;
-import com.natk.natk_api.users.CustomUserDetails;
-import com.natk.natk_api.users.UserRepository;
+import com.natk.natk_api.exception.ErrorResponse;
+import com.natk.natk_api.users.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

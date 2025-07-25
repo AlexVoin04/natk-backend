@@ -1,5 +1,11 @@
 package com.natk.natk_api.users;
 
+import com.natk.natk_api.users.dto.UserDto;
+import com.natk.natk_api.users.dto.UserFilterCriteria;
+import com.natk.natk_api.users.dto.UserUpdateDto;
+import com.natk.natk_api.users.model.UserEntity;
+import com.natk.natk_api.users.service.CurrentUserService;
+import com.natk.natk_api.users.service.UserService;
 import org.springframework.data.domain.Page;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,15 +25,17 @@ import java.util.stream.Collectors;
 public class UserController {
     private final UserService userService;
     private final UserMapper userMapper;
+    private final CurrentUserService currentUserService;
 
-    public UserController(UserService userService, UserMapper userMapper) {
+    public UserController(UserService userService, UserMapper userMapper, CurrentUserService currentUserService) {
         this.userService = userService;
         this.userMapper = userMapper;
+        this.currentUserService = currentUserService;
     }
 
     @GetMapping("/me")
     public UserDto getCurrentUser() {
-        UserEntity userEntity = userService.getCurrentUser();
+        UserEntity userEntity = currentUserService.getCurrentUser();
         return userMapper.toDto(userEntity);
     }
 
@@ -50,7 +58,8 @@ public class UserController {
             @RequestParam(defaultValue = "none") String sortBy,
             @RequestParam(defaultValue = "asc") String direction
     ) {
-        Page<UserEntity> userPage = userService.getUsersFiltered(role, name, surname, page, size, sortBy, direction);
+        UserFilterCriteria criteria = new UserFilterCriteria(role, name, surname, page, size, sortBy, direction);
+        Page<UserEntity> userPage = userService.getUsersFiltered(criteria);
         return userPage.map(userMapper::toDto);
     }
 

@@ -1,5 +1,6 @@
-package com.natk.natk_api.users;
+package com.natk.natk_api.users.repository;
 
+import com.natk.natk_api.users.model.UserEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

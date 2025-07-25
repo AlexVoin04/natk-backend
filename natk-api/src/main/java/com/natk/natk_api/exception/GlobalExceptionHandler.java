@@ -1,4 +1,4 @@
-package com.natk.natk_api;
+package com.natk.natk_api.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

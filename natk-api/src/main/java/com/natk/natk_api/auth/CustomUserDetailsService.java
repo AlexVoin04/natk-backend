@@ -1,5 +1,7 @@
-package com.natk.natk_api.users;
+package com.natk.natk_api.auth;
 
+import com.natk.natk_api.users.model.UserEntity;
+import com.natk.natk_api.users.repository.UserRepository;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;

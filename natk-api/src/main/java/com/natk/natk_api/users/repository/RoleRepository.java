@@ -1,5 +1,6 @@
-package com.natk.natk_api.users;
+package com.natk.natk_api.users.repository;
 
+import com.natk.natk_api.users.model.RoleEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
