@@ -45,7 +45,7 @@ public class UserService {
 
     public UserEntity getUserById(UUID id) {
         return userRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new IllegalArgumentException("User not found. ID:" + id));
     }
 
     public UserEntity updateUser(UUID id, UserUpdateDto dto) {
@@ -74,5 +74,12 @@ public class UserService {
             user.getRoles().clear();
             user.getRoles().addAll(newRoles);
         }
+    }
+
+    public void deleteUserById(UUID id) {
+        if (!userRepository.existsById(id)) {
+            throw new IllegalArgumentException("User not found. ID:" + id);
+        }
+        userRepository.deleteById(id);
     }
 }

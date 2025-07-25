@@ -25,9 +25,9 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(ex.getMessage(), "Forbidden", HttpServletResponse.SC_FORBIDDEN, request);
     }
 
-
     private int resolveStatus(IllegalArgumentException ex) {
-        return "User not found".equals(ex.getMessage())
+        String message = ex.getMessage();
+        return message != null && message.contains("User not found")
                 ? HttpServletResponse.SC_NOT_FOUND
                 : HttpServletResponse.SC_UNAUTHORIZED;
     }
