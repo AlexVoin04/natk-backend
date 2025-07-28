@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
 -- === Roles ===
 CREATE TABLE roles (
     id UUID PRIMARY KEY,
@@ -17,9 +19,9 @@ CREATE TABLE users (
 
 -- === User Roles ===
 CREATE TABLE user_roles (
-    id UUID PRIMARY KEY,
     user_id UUID NOT NULL,
     role_id UUID NOT NULL,
+    PRIMARY KEY (user_id, role_id),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
 );
@@ -149,3 +151,8 @@ CREATE INDEX idx_department_folder_access_folder_id ON department_folder_access(
 -- Индексы для пользовательских файлов
 CREATE INDEX idx_user_files_folder_id ON user_files(folder_id);
 CREATE INDEX idx_user_folders_user_id ON user_folders(user_id);
+
+INSERT INTO roles (id, name) VALUES
+  (gen_random_uuid(), 'ADMIN'),
+  (gen_random_uuid(), 'DEPARTMENT_HEAD'),
+  (gen_random_uuid(), 'TEACHER');

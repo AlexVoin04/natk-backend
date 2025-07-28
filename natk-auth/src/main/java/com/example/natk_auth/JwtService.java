@@ -1,6 +1,6 @@
 package com.example.natk_auth;
 
-import com.example.natk_auth.entity.User;
+import com.example.natk_auth.entity.UserEntity;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -27,7 +27,7 @@ public class JwtService {
         this.key = Keys.hmacShaKeyFor(secret.getBytes());
     }
 
-    public String generateToken(User user) {
+    public String generateToken(UserEntity user) {
         return Jwts.builder()
                 .subject(user.getId().toString())
                 .claim("name", user.getName())
