@@ -11,6 +11,7 @@ import com.natk.natk_api.users.model.UserEntity;
 import com.natk.natk_api.users.service.CurrentUserService;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.apache.tika.Tika;
@@ -22,6 +23,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserFileService {
     private final UserFileRepository fileRepo;
     private final UserFolderRepository folderRepo;
@@ -33,6 +35,7 @@ public class UserFileService {
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",       // .xlsx
             "application/vnd.ms-excel",                                               // .xls
+            "application/x-tika-ooxml",                                               // Office Open XML (OOXML)
             "text/plain",
 
             // Изображения
@@ -65,11 +68,15 @@ public class UserFileService {
             throw new IllegalArgumentException("File size exceeds 10MB limit");
         }
 
-        String mimeType = detectMimeType(dto.fileData());;
+        String mimeType = detectMimeType(dto.fileData());
+
+        log.info("detectMimeType: {}", mimeType);
 
         if (!ALLOWED_TYPES.contains(mimeType)) {
             throw new IllegalArgumentException("Unsupported file type: " + mimeType);
         }
+
+        log.info("Saving file: name={}, size={}, dataType={}", dto.name(), dto.fileData().length, dto.fileData().getClass().getName());
 
         UserEntity user = currentUserService.getCurrentUser();
         UserFolderEntity folder = folderRepo.findById(dto.folderId())

@@ -50,10 +50,11 @@ public class UserStorageController {
 
     @PostMapping(value = "/files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public FileInfoDto uploadFile(
-            @RequestPart("name") String name,
-            @RequestPart("folderId") UUID folderId,
+            @RequestParam("name") String name,
+            @RequestParam("folderId") UUID folderId,
             @RequestPart("fileData") MultipartFile fileData
     ) throws IOException {
+//        String mimeType = fileData.getContentType();
         byte[] fileBytes = fileData.getBytes();
         UploadFileDto dto = new UploadFileDto(name, folderId, fileBytes);
         var file = userFileService.uploadFile(dto);
