@@ -40,5 +40,6 @@ public class UserFileEntity {
     private String fileType;
 
     @Lob
+    @Column(name = "file_data", columnDefinition = "BYTEA")
     private byte[] fileData;
 }

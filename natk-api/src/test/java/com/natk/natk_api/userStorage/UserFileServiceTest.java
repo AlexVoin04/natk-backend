@@ -53,13 +53,14 @@ public class UserFileServiceTest {
 
     @Test
     void uploadFile_success() {
-        UploadFileDto dto = new UploadFileDto("file.txt", folderId, "text/plain", "data".getBytes());
+        UploadFileDto dto = new UploadFileDto("file.txt", folderId, "data".getBytes());
         when(currentUserService.getCurrentUser()).thenReturn(user);
         when(folderRepo.findById(folderId)).thenReturn(Optional.of(folder));
         when(fileRepo.save(any())).thenAnswer(i -> i.getArgument(0));
 
         UserFileEntity file = userFileService.uploadFile(dto);
 
+        assertEquals("text/plain", file.getFileType());
         assertEquals("file.txt", file.getName());
         assertEquals(user, file.getCreatedBy());
     }

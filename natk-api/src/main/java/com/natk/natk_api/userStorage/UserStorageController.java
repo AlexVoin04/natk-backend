@@ -1,11 +1,31 @@
 package com.natk.natk_api.userStorage;
 
-import com.natk.natk_api.userStorage.dto.*;
+import com.natk.natk_api.userStorage.dto.CreateFolderDto;
+import com.natk.natk_api.userStorage.dto.FileInfoDto;
+import com.natk.natk_api.userStorage.dto.FolderDto;
+import com.natk.natk_api.userStorage.dto.UpdateFileDto;
+import com.natk.natk_api.userStorage.dto.UpdateFolderDto;
+import com.natk.natk_api.userStorage.dto.UploadFileDto;
+import com.natk.natk_api.userStorage.model.UserFileEntity;
 import com.natk.natk_api.userStorage.service.UserFileService;
 import com.natk.natk_api.userStorage.service.UserFolderService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
@@ -22,8 +42,20 @@ public class UserStorageController {
         return new FolderDto(folder.getId(), folder.getName());
     }
 
-    @PostMapping("/files")
-    public FileInfoDto uploadFile(@RequestBody UploadFileDto dto) {
+//    @PostMapping("/files")
+//    public FileInfoDto uploadFile(@RequestBody UploadFileDto dto) {
+//        var file = userFileService.uploadFile(dto);
+//        return new FileInfoDto(file.getId(), file.getName(), file.getFileType(), file.getCreatedAt());
+//    }
+
+    @PostMapping(value = "/files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public FileInfoDto uploadFile(
+            @RequestPart("name") String name,
+            @RequestPart("folderId") UUID folderId,
+            @RequestPart("fileData") MultipartFile fileData
+    ) throws IOException {
+        byte[] fileBytes = fileData.getBytes();
+        UploadFileDto dto = new UploadFileDto(name, folderId, fileBytes);
         var file = userFileService.uploadFile(dto);
         return new FileInfoDto(file.getId(), file.getName(), file.getFileType(), file.getCreatedAt());
     }
@@ -61,5 +93,14 @@ public class UserStorageController {
     @PutMapping("/files/{id}")
     public void updateFile(@PathVariable UUID id, @RequestBody UpdateFileDto dto) {
         userFileService.updateFile(id, dto);
+    }
+
+    @GetMapping("/files/{id}/download")
+    public ResponseEntity<byte[]> downloadFile(@PathVariable UUID id) {
+        UserFileEntity file = userFileService.getFileEntity(id);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getName() + "\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(file.getFileData());
     }
 }

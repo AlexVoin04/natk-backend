@@ -13,9 +13,11 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.apache.tika.Tika;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -25,8 +27,50 @@ public class UserFileService {
     private final UserFolderRepository folderRepo;
     private final CurrentUserService currentUserService;
 
+    private static final Set<String> ALLOWED_TYPES = Set.of(
+            // Документы
+            "application/pdf",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",       // .xlsx
+            "application/vnd.ms-excel",                                               // .xls
+            "text/plain",
+
+            // Изображения
+            "image/png",
+            "image/jpeg",
+
+            // Draw.io / XML
+            "application/xml",       // .xml, .drawio
+            "text/xml",
+
+            // Архивы
+            "application/zip",       // .zip
+            "application/x-rar-compressed", // .rar
+            "application/x-7z-compressed",  // .7z
+            "application/x-tar",     // .tar
+            "application/gzip"       // .gz
+    );
+
+    private static final long MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+    private static final Tika tika = new Tika();
+
+    private String detectMimeType(byte[] data) {
+        return tika.detect(data);
+    }
+
     @Transactional
     public UserFileEntity uploadFile(UploadFileDto dto) {
+        if (dto.fileData().length > MAX_FILE_SIZE_BYTES) {
+            throw new IllegalArgumentException("File size exceeds 10MB limit");
+        }
+
+        String mimeType = detectMimeType(dto.fileData());;
+
+        if (!ALLOWED_TYPES.contains(mimeType)) {
+            throw new IllegalArgumentException("Unsupported file type: " + mimeType);
+        }
+
         UserEntity user = currentUserService.getCurrentUser();
         UserFolderEntity folder = folderRepo.findById(dto.folderId())
                 .filter(f -> f.getUser().getId().equals(user.getId()))
@@ -36,11 +80,19 @@ public class UserFileService {
         file.setName(dto.name());
         file.setFolder(folder);
         file.setFileData(dto.fileData());
-        file.setFileType(dto.fileType());
+        file.setFileType(mimeType);
         file.setCreatedBy(user);
         file.setCreatedAt(Instant.now());
 
         return fileRepo.save(file);
+    }
+
+    @Transactional(readOnly = true)
+    public UserFileEntity getFileEntity(UUID fileId) {
+        UserEntity user = currentUserService.getCurrentUser();
+        return fileRepo.findById(fileId)
+                .filter(f -> f.getCreatedBy().getId().equals(user.getId()))
+                .orElseThrow(() -> new AccessDeniedException("File not found or not owned by user"));
     }
 
     @Transactional(readOnly = true)
