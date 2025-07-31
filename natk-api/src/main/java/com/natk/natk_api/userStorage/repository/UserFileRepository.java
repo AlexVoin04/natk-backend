@@ -6,9 +6,12 @@ import com.natk.natk_api.users.model.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface UserFileRepository extends JpaRepository<UserFileEntity, UUID> {
-    List<UserFileEntity> findByFolder(UserFolderEntity folder);
-    List<UserFileEntity> findByCreatedByAndFolderIsNull(UserEntity createdBy);
+    Optional<UserFileEntity> findByIdAndCreatedBy(UUID id, UserEntity createdBy);
+    List<UserFileEntity> findByFolderAndIsDeletedFalse(UserFolderEntity folder);
+    List<UserFileEntity> findByCreatedByAndFolderIsNullAndIsDeletedFalse(UserEntity createdBy);
+    List<UserFileEntity> findByCreatedByAndIsDeletedTrueOrderByDeletedAtDesc(UserEntity createdBy);
 }

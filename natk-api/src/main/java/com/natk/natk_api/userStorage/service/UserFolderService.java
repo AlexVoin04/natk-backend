@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -25,9 +26,14 @@ public class UserFolderService {
     @Transactional
     public UserFolderEntity createFolder(CreateFolderDto dto) {
         UserEntity user = currentUserService.getCurrentUser();
+
         UserFolderEntity folder = new UserFolderEntity();
         folder.setName(dto.name());
         folder.setUser(user);
+        folder.setDeleted(false);
+        folder.setCreatedAt(Instant.now());
+        folder.setUpdatedAt(null);
+
         if (dto.parentFolderId() != null) {
             UserFolderEntity parent = folderRepo.findById(dto.parentFolderId())
                     .filter(f -> f.getUser().getId().equals(user.getId()))
@@ -41,9 +47,14 @@ public class UserFolderService {
     public void deleteFolder(UUID folderId) {
         UserEntity user = currentUserService.getCurrentUser();
         UserFolderEntity folder = folderRepo.findById(folderId)
-                .filter(f -> f.getUser().getId().equals(user.getId()))
+                .filter(f -> f.getUser().getId().equals(user.getId()) && !f.isDeleted())
                 .orElseThrow(() -> new AccessDeniedException("Folder not found or not owned by user"));
-        folderRepo.delete(folder);
+
+        folder.setDeleted(true);
+        folder.setDeletedAt(Instant.now());
+        folder.setUpdatedAt(Instant.now());
+
+        folderRepo.save(folder);
     }
 
     @Transactional(readOnly = true)
@@ -55,7 +66,7 @@ public class UserFolderService {
                 .orElseThrow(() -> new AccessDeniedException("Folder not found or not owned by user"))
                 : null;
 
-        return folderRepo.findByUserAndParentFolder(user, parent).stream()
+        return folderRepo.findByUserAndParentFolderAndIsDeletedFalse(user, parent).stream()
                 .map(f -> new FolderDto(f.getId(), f.getName()))
                 .toList();
     }

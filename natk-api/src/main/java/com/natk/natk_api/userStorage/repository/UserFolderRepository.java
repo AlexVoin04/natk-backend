@@ -8,5 +8,6 @@ import java.util.List;
 import java.util.UUID;
 
 public interface UserFolderRepository extends JpaRepository<UserFolderEntity, UUID> {
-    List<UserFolderEntity> findByUserAndParentFolder(UserEntity user, UserFolderEntity parent);
+    List<UserFolderEntity> findByUserAndParentFolderAndIsDeletedFalse(UserEntity user, UserFolderEntity parent);
+    List<UserFolderEntity> findByUserAndIsDeletedTrueOrderByDeletedAtDesc(UserEntity user);
 }

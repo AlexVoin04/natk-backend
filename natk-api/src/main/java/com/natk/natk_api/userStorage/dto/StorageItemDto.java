@@ -7,6 +7,7 @@ public record StorageItemDto(
         UUID id,
         String name,
         String type, // "folder" или MIME type файла
-        Instant createdAt
+        Instant createdAt,
+        Instant updatedAt
 ) {}
 

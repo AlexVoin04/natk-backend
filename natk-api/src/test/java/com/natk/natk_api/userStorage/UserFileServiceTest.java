@@ -108,7 +108,7 @@ public class UserFileServiceTest {
 
         when(currentUserService.getCurrentUser()).thenReturn(user);
         when(folderRepo.findById(folderId)).thenReturn(Optional.of(folder));
-        when(fileRepo.findByFolder(folder)).thenReturn(List.of(file));
+        when(fileRepo.findByFolderAndIsDeletedFalse(folder)).thenReturn(List.of(file));
 
         List<FileInfoDto> files = userFileService.listFiles(folderId);
 

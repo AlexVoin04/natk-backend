@@ -72,14 +72,9 @@ public class UserFileService {
         }
 
         String mimeType = detectMimeType(dto.fileData());
-
-        log.info("detectMimeType: {}", mimeType);
-
         if (!ALLOWED_TYPES.contains(mimeType)) {
             throw new IllegalArgumentException("Unsupported file type: " + mimeType);
         }
-
-        log.info("Saving file: name={}, size={}, dataType={}", dto.name(), dto.fileData().length, dto.fileData().getClass().getName());
 
         UserEntity user = currentUserService.getCurrentUser();
         UserFolderEntity folder = null;
@@ -98,6 +93,8 @@ public class UserFileService {
         file.setFileType(mimeType);
         file.setCreatedBy(user);
         file.setCreatedAt(Instant.now());
+        file.setDeleted(false);
+        file.setDeletedAt(null);
 
         return fileRepo.save(file);
     }
@@ -113,8 +110,7 @@ public class UserFileService {
     @Transactional(readOnly = true)
     public FileInfoDto getFile(UUID fileId) {
         UserEntity user = currentUserService.getCurrentUser();
-        UserFileEntity file = fileRepo.findById(fileId)
-                .filter(f -> f.getCreatedBy().getId().equals(user.getId()))
+        UserFileEntity file = fileRepo.findByIdAndCreatedBy(fileId, user)
                 .orElseThrow(() -> new AccessDeniedException("File not found or not owned by user"));
 
         return new FileInfoDto(file.getId(), file.getName(), file.getFileType(), file.getCreatedAt());
@@ -124,9 +120,13 @@ public class UserFileService {
     public void deleteFile(UUID fileId) {
         UserEntity user = currentUserService.getCurrentUser();
         UserFileEntity file = fileRepo.findById(fileId)
-                .filter(f -> f.getCreatedBy().getId().equals(user.getId()))
+                .filter(f -> f.getCreatedBy().getId().equals(user.getId()) && !f.isDeleted())
                 .orElseThrow(() -> new AccessDeniedException("File not found or not owned by user"));
-        fileRepo.delete(file);
+
+        file.setDeleted(true);
+        file.setDeletedAt(Instant.now());
+
+        fileRepo.save(file);
     }
 
     @Transactional(readOnly = true)
@@ -136,7 +136,7 @@ public class UserFileService {
                 .filter(f -> f.getUser().getId().equals(user.getId()))
                 .orElseThrow(() -> new AccessDeniedException("Folder not found or not owned by user"));
 
-        return fileRepo.findByFolder(folder).stream()
+        return fileRepo.findByFolderAndIsDeletedFalse(folder).stream()
                 .map(f -> new FileInfoDto(f.getId(), f.getName(), f.getFileType(), f.getCreatedAt()))
                 .toList();
     }
@@ -209,9 +209,9 @@ public class UserFileService {
     private Set<String> getExistingFileNames(UserFolderEntity folder, UserEntity user) {
         List<UserFileEntity> files;
         if (folder == null) {
-            files = fileRepo.findByCreatedByAndFolderIsNull(user);
+            files = fileRepo.findByCreatedByAndFolderIsNullAndIsDeletedFalse(user);
         } else {
-            files = fileRepo.findByFolder(folder);
+            files = fileRepo.findByFolderAndIsDeletedFalse(folder);
         }
 
         return files.stream()

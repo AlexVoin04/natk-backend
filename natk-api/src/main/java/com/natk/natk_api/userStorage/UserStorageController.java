@@ -1,6 +1,13 @@
 package com.natk.natk_api.userStorage;
 
-import com.natk.natk_api.userStorage.dto.*;
+import com.natk.natk_api.userStorage.dto.CreateFolderDto;
+import com.natk.natk_api.userStorage.dto.DeletedItemDto;
+import com.natk.natk_api.userStorage.dto.FileInfoDto;
+import com.natk.natk_api.userStorage.dto.FolderContentResponseDto;
+import com.natk.natk_api.userStorage.dto.FolderDto;
+import com.natk.natk_api.userStorage.dto.UpdateFileDto;
+import com.natk.natk_api.userStorage.dto.UpdateFolderDto;
+import com.natk.natk_api.userStorage.dto.UploadFileDto;
 import com.natk.natk_api.userStorage.model.UserFileEntity;
 import com.natk.natk_api.userStorage.service.UserFileService;
 import com.natk.natk_api.userStorage.service.UserFolderService;
@@ -54,19 +61,12 @@ public class UserStorageController {
         userFolderService.updateFolder(id, dto);
     }
 
-//    @PostMapping("/files")
-//    public FileInfoDto uploadFile(@RequestBody UploadFileDto dto) {
-//        var file = userFileService.uploadFile(dto);
-//        return new FileInfoDto(file.getId(), file.getName(), file.getFileType(), file.getCreatedAt());
-//    }
-
     @PostMapping(value = "/files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public FileInfoDto uploadFile(
             @RequestParam("name") String name,
             @RequestParam(value = "folderId", required = false) UUID folderId,
             @RequestPart("fileData") MultipartFile fileData
     ) throws IOException {
-//        String mimeType = fileData.getContentType();
         byte[] fileBytes = fileData.getBytes();
         UploadFileDto dto = new UploadFileDto(name, folderId, fileBytes);
         var file = userFileService.uploadFile(dto);
@@ -105,5 +105,10 @@ public class UserStorageController {
     @GetMapping("/items")
     public FolderContentResponseDto listFolderItems(@RequestParam(required = false) UUID folderId) {
         return userStorageService.getStorageItems(folderId);
+    }
+
+    @GetMapping("/bin")
+    public List<DeletedItemDto> getBinItems() {
+        return userStorageService.getDeletedItems();
     }
 }

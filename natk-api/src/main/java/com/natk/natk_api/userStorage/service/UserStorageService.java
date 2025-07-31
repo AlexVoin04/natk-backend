@@ -1,7 +1,9 @@
 package com.natk.natk_api.userStorage.service;
 
+import com.natk.natk_api.userStorage.dto.DeletedItemDto;
 import com.natk.natk_api.userStorage.dto.FolderContentResponseDto;
 import com.natk.natk_api.userStorage.dto.StorageItemDto;
+import com.natk.natk_api.userStorage.mapper.StorageItemMapper;
 import com.natk.natk_api.userStorage.model.UserFileEntity;
 import com.natk.natk_api.userStorage.model.UserFolderEntity;
 import com.natk.natk_api.userStorage.repository.UserFileRepository;
@@ -18,7 +20,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
@@ -28,25 +32,52 @@ public class UserStorageService {
     private final UserFolderRepository folderRepo;
     private final UserFileRepository fileRepo;
     private final CurrentUserService currentUserService;
+    private final StorageItemMapper mapper;
 
     @Transactional(readOnly = true)
     public FolderContentResponseDto getStorageItems(UUID folderId) {
         UserEntity user = currentUserService.getCurrentUser();
-
         UserFolderEntity folder = resolveFolderOrRoot(folderId, user);
 
-        List<StorageItemDto> folders = getSubfolders(folder, user);
-        List<StorageItemDto> files = getFilesInFolder(folder, user);
+        List<StorageItemDto> folders = fetchActiveFolders(folder, user);
+        List<StorageItemDto> files = fetchActiveFiles(folder, user);
 
-        List<StorageItemDto> combinedItems = sortItems(folders, files);
+        List<StorageItemDto> combined = sortByFolderThenName(folders, files);
         String path = buildPath(folder);
 
         return new FolderContentResponseDto(
                 folder != null ? folder.getId() : null,
                 path,
-                combinedItems
+                combined
         );
     }
+
+    @Transactional(readOnly = true)
+    public List<DeletedItemDto> getDeletedItems() {
+        UserEntity user = currentUserService.getCurrentUser();
+
+        List<UserFolderEntity> deletedFolders = folderRepo
+                .findByUserAndIsDeletedTrueOrderByDeletedAtDesc(user);
+
+        Set<UUID> deletedFolderIds = deletedFolders.stream()
+                .map(UserFolderEntity::getId)
+                .collect(Collectors.toSet());
+
+        List<DeletedItemDto> folders = deletedFolders.stream()
+                .map(mapper::toDeletedItem)
+                .toList();
+
+        List<DeletedItemDto> files = fileRepo
+                .findByCreatedByAndIsDeletedTrueOrderByDeletedAtDesc(user).stream()
+                .filter(f -> f.getFolder() == null || !deletedFolderIds.contains(f.getFolder().getId()))
+                .map(mapper::toDeletedItem)
+                .toList();
+
+        return Stream.concat(folders.stream(), files.stream())
+                .sorted(Comparator.comparing(DeletedItemDto::deletedAt, Comparator.nullsLast(Comparator.reverseOrder())))
+                .toList();
+    }
+
 
     private UserFolderEntity resolveFolderOrRoot(UUID folderId, UserEntity user) {
         if (folderId == null) return null;
@@ -56,56 +87,47 @@ public class UserStorageService {
                 .orElseThrow(() -> new AccessDeniedException("Folder not found or not owned by user"));
     }
 
-    private List<StorageItemDto> getSubfolders(UserFolderEntity folder, UserEntity user) {
-        return folderRepo.findByUserAndParentFolder(user, folder).stream()
-                .map(f -> new StorageItemDto(
-                        f.getId(),
-                        f.getName(),
-                        "folder",
-                        null
-                ))
+    private List<StorageItemDto> fetchActiveFolders(UserFolderEntity parent, UserEntity user) {
+        return folderRepo.findByUserAndParentFolderAndIsDeletedFalse(user, parent).stream()
+                .map(mapper::toStorageItem)
                 .toList();
     }
 
-    private List<StorageItemDto> getFilesInFolder(UserFolderEntity folder, UserEntity user) {
-        Stream<UserFileEntity> fileStream;
+    private List<StorageItemDto> fetchActiveFiles(UserFolderEntity folder, UserEntity user) {
+        List<UserFileEntity> files;
 
         if (folder == null) {
-            fileStream = fileRepo.findByCreatedByAndFolderIsNull(user).stream();
+            files = fileRepo.findByCreatedByAndFolderIsNullAndIsDeletedFalse(user);
         } else {
-            fileStream = fileRepo.findByFolder(folder).stream()
-                    .filter(f -> f.getCreatedBy().getId().equals(user.getId()));
+            files = fileRepo.findByFolderAndIsDeletedFalse(folder).stream()
+                    .filter(f -> f.getCreatedBy().getId().equals(user.getId()))
+                    .toList();
         }
 
-        return fileStream
-                .map(f -> new StorageItemDto(
-                        f.getId(),
-                        f.getName(),
-                        f.getFileType(),
-                        f.getCreatedAt()
-                ))
+        return files.stream()
+                .map(mapper::toStorageItem)
                 .toList();
     }
 
-    private List<StorageItemDto> sortItems(List<StorageItemDto> folders, List<StorageItemDto> files) {
-        Comparator<StorageItemDto> folderFirst = Comparator
-                .comparing((StorageItemDto i) -> !i.type().equals("folder"))
+    private List<StorageItemDto> sortByFolderThenName(List<StorageItemDto> folders, List<StorageItemDto> files) {
+        Comparator<StorageItemDto> byTypeThenName = Comparator
+                .comparing((StorageItemDto i) -> !i.type().equals("folder")) // folders first
                 .thenComparing(StorageItemDto::name, String.CASE_INSENSITIVE_ORDER);
 
         return Stream.concat(folders.stream(), files.stream())
-                .sorted(folderFirst)
+                .sorted(byTypeThenName)
                 .toList();
     }
 
     private String buildPath(UserFolderEntity folder) {
         if (folder == null) return "Все файлы";
 
-        List<String> pathParts = new ArrayList<>();
+        List<String> path = new ArrayList<>();
         for (UserFolderEntity current = folder; current != null; current = current.getParentFolder()) {
-            pathParts.add(current.getName());
+            path.add(current.getName());
         }
 
-        Collections.reverse(pathParts);
-        return "Все файлы/" + String.join("/", pathParts);
+        Collections.reverse(path);
+        return "Все файлы/" + String.join("/", path);
     }
 }

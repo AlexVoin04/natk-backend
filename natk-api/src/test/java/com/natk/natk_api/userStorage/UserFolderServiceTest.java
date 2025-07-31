@@ -77,7 +77,7 @@ class UserFolderServiceTest {
         folder.setUser(user);
 
         when(currentUserService.getCurrentUser()).thenReturn(user);
-        when(folderRepo.findByUserAndParentFolder(eq(user), isNull())).thenReturn(List.of(folder));
+        when(folderRepo.findByUserAndParentFolderAndIsDeletedFalse(eq(user), isNull())).thenReturn(List.of(folder));
 
         List<FolderDto> result = userFolderService.listFolders(null);
 

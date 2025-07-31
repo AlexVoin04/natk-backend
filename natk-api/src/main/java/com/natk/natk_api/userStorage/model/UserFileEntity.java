@@ -30,20 +30,28 @@ public class UserFileEntity {
     @Column(nullable = false)
     private String name;
 
-    @ManyToOne(optional = false)
-    @JoinColumn(name = "folder_id")
+    @ManyToOne(optional = true)
+    @JoinColumn(name = "folder_id", nullable = true)
     private UserFolderEntity folder;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "created_by")
     private UserEntity createdBy;
 
+    @Column(name = "created_at")
     private Instant createdAt;
 
+    @Column(name = "file_type")
     private String fileType;
 
     @Lob
     @JdbcTypeCode(SqlTypes.VARBINARY)
     @Column(name = "file_data", columnDefinition = "BYTEA", nullable = false)
     private byte[] fileData;
+
+    @Column(name = "is_deleted", nullable = false)
+    private boolean isDeleted = false;
+
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
 }
