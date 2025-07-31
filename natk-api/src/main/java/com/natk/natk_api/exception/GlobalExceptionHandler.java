@@ -27,15 +27,24 @@ public class GlobalExceptionHandler {
 
     private int resolveStatus(IllegalArgumentException ex) {
         String message = ex.getMessage();
-        return message != null && message.contains("User not found")
-                ? HttpServletResponse.SC_NOT_FOUND
-                : HttpServletResponse.SC_UNAUTHORIZED;
+        if (message == null) return HttpServletResponse.SC_BAD_REQUEST;
+
+        if (message.contains("User not found")) {
+            return HttpServletResponse.SC_NOT_FOUND;
+        } else if (message.contains("File with the same name already exists")) {
+            return HttpServletResponse.SC_CONFLICT;
+        }
+
+        return HttpServletResponse.SC_BAD_REQUEST;
     }
 
     private String resolveErrorMessage(int status) {
         return switch (status) {
             case HttpServletResponse.SC_NOT_FOUND -> "Not Found";
             case HttpServletResponse.SC_UNAUTHORIZED -> "Unauthorized";
+            case HttpServletResponse.SC_CONFLICT -> "Conflict";
+            case HttpServletResponse.SC_FORBIDDEN -> "Forbidden";
+            case HttpServletResponse.SC_BAD_REQUEST -> "Bad Request";
             default -> "Error";
         };
     }

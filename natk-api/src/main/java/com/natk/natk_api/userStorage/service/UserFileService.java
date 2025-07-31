@@ -20,6 +20,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -85,6 +88,8 @@ public class UserFileService {
                     .filter(f -> f.getUser().getId().equals(user.getId()))
                     .orElseThrow(() -> new AccessDeniedException("Folder not found or not owned by user"));
         }
+
+        String uniqueName = generateUniqueFileName(dto.name(), folder, user); //можно уникально имя использовать сразу
 
         UserFileEntity file = new UserFileEntity();
         file.setName(dto.name());
@@ -154,5 +159,63 @@ public class UserFileService {
 
             file.setFolder(newFolder);
         }
+    }
+
+    private String generateUniqueFileName(String originalName, UserFolderEntity folder, UserEntity user) {
+        String baseName;
+        String extension;
+
+        int lastDot = originalName.lastIndexOf('.');
+        if (lastDot != -1) {
+            baseName = originalName.substring(0, lastDot);
+            extension = originalName.substring(lastDot);
+        } else {
+            baseName = originalName;
+            extension = "";
+        }
+
+        Pattern suffixPattern = Pattern.compile("^(.*)\\((\\d+)\\)$");
+        Matcher suffixMatcher = suffixPattern.matcher(baseName);
+
+        String cleanBaseName = baseName;
+        if (suffixMatcher.matches()) {
+            cleanBaseName = suffixMatcher.group(1);
+        }
+
+        Set<String> existingNames = getExistingFileNames(folder, user);
+
+        // Проверяем, есть ли файл с точным именем originalName
+        if (!existingNames.contains(originalName)) {
+            // Если такого нет, можно вернуть его сразу
+            return originalName;
+        }
+
+        // Ищем максимальный индекс для cleanBaseName
+        Pattern pattern = Pattern.compile(Pattern.quote(cleanBaseName) + "\\((\\d+)\\)" + Pattern.quote(extension));
+
+        int maxIndex = 0;
+        for (String name : existingNames) {
+            Matcher matcher = pattern.matcher(name);
+            if (matcher.matches()) {
+                int index = Integer.parseInt(matcher.group(1));
+                maxIndex = Math.max(maxIndex, index);
+            }
+        }
+
+        String suggestedName = cleanBaseName + "(" + (maxIndex + 1) + ")" + extension;
+        throw new IllegalArgumentException("File with the same name already exists. Suggested name: " + suggestedName);
+    }
+
+    private Set<String> getExistingFileNames(UserFolderEntity folder, UserEntity user) {
+        List<UserFileEntity> files;
+        if (folder == null) {
+            files = fileRepo.findByCreatedByAndFolderIsNull(user);
+        } else {
+            files = fileRepo.findByFolder(folder);
+        }
+
+        return files.stream()
+                .map(UserFileEntity::getName)
+                .collect(Collectors.toSet());
     }
 }
