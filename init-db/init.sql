@@ -90,7 +90,7 @@ CREATE TABLE user_folders (
 CREATE TABLE user_files (
     id UUID PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    folder_id UUID NOT NULL,
+    folder_id UUID,
     created_by UUID NOT NULL,
     created_at TIMESTAMP,
     file_data BYTEA,

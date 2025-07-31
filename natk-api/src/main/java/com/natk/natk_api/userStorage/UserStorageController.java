@@ -1,14 +1,10 @@
 package com.natk.natk_api.userStorage;
 
-import com.natk.natk_api.userStorage.dto.CreateFolderDto;
-import com.natk.natk_api.userStorage.dto.FileInfoDto;
-import com.natk.natk_api.userStorage.dto.FolderDto;
-import com.natk.natk_api.userStorage.dto.UpdateFileDto;
-import com.natk.natk_api.userStorage.dto.UpdateFolderDto;
-import com.natk.natk_api.userStorage.dto.UploadFileDto;
+import com.natk.natk_api.userStorage.dto.*;
 import com.natk.natk_api.userStorage.model.UserFileEntity;
 import com.natk.natk_api.userStorage.service.UserFileService;
 import com.natk.natk_api.userStorage.service.UserFolderService;
+import com.natk.natk_api.userStorage.service.UserStorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -35,11 +31,27 @@ import java.util.UUID;
 public class UserStorageController {
     private final UserFileService userFileService;
     private final UserFolderService userFolderService;
+    private final UserStorageService userStorageService;
 
     @PostMapping("/folders")
     public FolderDto createFolder(@RequestBody CreateFolderDto dto) {
         var folder = userFolderService.createFolder(dto);
         return new FolderDto(folder.getId(), folder.getName());
+    }
+
+    @DeleteMapping("/folders/{id}")
+    public void deleteFolder(@PathVariable UUID id) {
+        userFolderService.deleteFolder(id);
+    }
+
+    @GetMapping("/folders")
+    public List<FolderDto> listFolders(@RequestParam(required = false) UUID parentId) {
+        return userFolderService.listFolders(parentId);
+    }
+
+    @PutMapping("/folders/{id}")
+    public void updateFolder(@PathVariable UUID id, @RequestBody UpdateFolderDto dto) {
+        userFolderService.updateFolder(id, dto);
     }
 
 //    @PostMapping("/files")
@@ -51,7 +63,7 @@ public class UserStorageController {
     @PostMapping(value = "/files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public FileInfoDto uploadFile(
             @RequestParam("name") String name,
-            @RequestParam("folderId") UUID folderId,
+            @RequestParam(value = "folderId", required = false) UUID folderId,
             @RequestPart("fileData") MultipartFile fileData
     ) throws IOException {
 //        String mimeType = fileData.getContentType();
@@ -71,24 +83,9 @@ public class UserStorageController {
         userFileService.deleteFile(id);
     }
 
-    @DeleteMapping("/folders/{id}")
-    public void deleteFolder(@PathVariable UUID id) {
-        userFolderService.deleteFolder(id);
-    }
-
-    @GetMapping("/folders")
-    public List<FolderDto> listFolders(@RequestParam(required = false) UUID parentId) {
-        return userFolderService.listFolders(parentId);
-    }
-
     @GetMapping("/files")
     public List<FileInfoDto> listFiles(@RequestParam UUID folderId) {
         return userFileService.listFiles(folderId);
-    }
-
-    @PutMapping("/folders/{id}")
-    public void updateFolder(@PathVariable UUID id, @RequestBody UpdateFolderDto dto) {
-        userFolderService.updateFolder(id, dto);
     }
 
     @PutMapping("/files/{id}")
@@ -103,5 +100,10 @@ public class UserStorageController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getName() + "\"")
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(file.getFileData());
+    }
+
+    @GetMapping("/items")
+    public FolderContentResponseDto listFolderItems(@RequestParam(required = false) UUID folderId) {
+        return userStorageService.getStorageItems(folderId);
     }
 }

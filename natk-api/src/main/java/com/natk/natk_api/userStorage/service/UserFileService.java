@@ -79,9 +79,12 @@ public class UserFileService {
         log.info("Saving file: name={}, size={}, dataType={}", dto.name(), dto.fileData().length, dto.fileData().getClass().getName());
 
         UserEntity user = currentUserService.getCurrentUser();
-        UserFolderEntity folder = folderRepo.findById(dto.folderId())
-                .filter(f -> f.getUser().getId().equals(user.getId()))
-                .orElseThrow(() -> new AccessDeniedException("Folder not found or not owned by user"));
+        UserFolderEntity folder = null;
+        if (dto.folderId() != null) {
+            folder = folderRepo.findById(dto.folderId())
+                    .filter(f -> f.getUser().getId().equals(user.getId()))
+                    .orElseThrow(() -> new AccessDeniedException("Folder not found or not owned by user"));
+        }
 
         UserFileEntity file = new UserFileEntity();
         file.setName(dto.name());
