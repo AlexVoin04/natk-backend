@@ -8,11 +8,14 @@ import org.springframework.stereotype.Component;
 public class UserFolderMapper {
 
     public FolderDto toDto(UserFolderEntity entity) {
+        String path = entity.getParentFolder() != null ? entity.buildPath() : "Все файлы" + "/" + entity.getName();
+
         return new FolderDto(
                 entity.getId(),
                 entity.getName(),
                 entity.getParentFolder() != null ? entity.getParentFolder().getId() : null,
-                entity.isDeleted()
+                entity.isDeleted(),
+                path
         );
     }
 }

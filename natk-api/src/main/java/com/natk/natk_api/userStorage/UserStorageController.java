@@ -61,8 +61,8 @@ public class UserStorageController {
     }
 
     @PutMapping("/folders/{id}")
-    public void updateFolder(@PathVariable UUID id, @RequestBody UpdateFolderDto dto) {
-        userFolderService.updateFolder(id, dto);
+    public FolderDto updateFolder(@PathVariable UUID id, @RequestBody UpdateFolderDto dto) {
+        return userFolderService.updateFolder(id, dto);
     }
 
     @PostMapping(value = "/files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -92,8 +92,8 @@ public class UserStorageController {
     }
 
     @PutMapping("/files/{id}")
-    public void updateFile(@PathVariable UUID id, @RequestBody UpdateFileDto dto) {
-        userFileService.updateFile(id, dto);
+    public FileInfoDto updateFile(@PathVariable UUID id, @RequestBody UpdateFileDto dto) {
+        return userFileService.updateFile(id, dto);
     }
 
     @GetMapping("/files/{id}/download")

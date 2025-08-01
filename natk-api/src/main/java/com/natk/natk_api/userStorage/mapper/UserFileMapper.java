@@ -15,7 +15,7 @@ public class UserFileMapper {
     public FileInfoDto toDto(UserFileEntity entity) {
         UserFolderEntity folder = entity.getFolder();
         FolderDto folderDto = folder != null ? userFolderMapper.toDto(folder) : null;
-        String path = folder != null ? folder.buildPath() : "Все файлы";
+        String path = folder != null ? folderDto.path()  : "Все файлы";
 
         return new FileInfoDto(
                 entity.getId(),

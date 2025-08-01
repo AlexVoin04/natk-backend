@@ -144,14 +144,18 @@ public class UserFileService {
     }
 
     @Transactional
-    public void updateFile(UUID fileId, UpdateFileDto dto) {
+    public FileInfoDto updateFile(UUID fileId, UpdateFileDto dto) {
         UserEntity user = currentUserService.getCurrentUser();
         UserFileEntity file = fileRepo.findById(fileId)
                 .filter(f -> f.getCreatedBy().getId().equals(user.getId()))
                 .orElseThrow(() -> new AccessDeniedException("File not found or not owned by user"));
 
+        boolean modified = false;
+
         if (dto.newName() != null && !dto.newName().isBlank()) {
+            generateUniqueFileName(dto.newName(), file.getFolder(), user);
             file.setName(dto.newName());
+            modified = true;
         }
 
         if (dto.newFolderId() != null) {
@@ -160,7 +164,14 @@ public class UserFileService {
                     .orElseThrow(() -> new AccessDeniedException("Target folder not found or not owned by user"));
 
             file.setFolder(newFolder);
+            modified = true;
         }
+
+        if (!modified) {
+            throw new IllegalArgumentException("No changes provided for file update");
+        }
+
+        return userFileMapper.toDto(file);
     }
 
     private String generateUniqueFileName(String originalName, UserFolderEntity folder, UserEntity user) {

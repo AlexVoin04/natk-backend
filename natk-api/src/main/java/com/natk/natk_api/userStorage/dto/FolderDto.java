@@ -6,5 +6,6 @@ public record FolderDto(
         UUID id,
         String name,
         UUID parentId,
-        boolean isDeleted
+        boolean isDeleted,
+        String path
 ) {}

@@ -74,14 +74,17 @@ public class UserFolderService {
     }
 
     @Transactional
-    public void updateFolder(UUID folderId, UpdateFolderDto dto) {
+    public FolderDto  updateFolder(UUID folderId, UpdateFolderDto dto) {
         UserEntity user = currentUserService.getCurrentUser();
         UserFolderEntity folder = folderRepo.findById(folderId)
                 .filter(f -> f.getUser().getId().equals(user.getId()))
                 .orElseThrow(() -> new AccessDeniedException("Folder not found or not owned by user"));
 
+        boolean modified = false;
+
         if (dto.newName() != null && !dto.newName().isBlank()) {
             folder.setName(dto.newName());
+            modified = true;
         }
 
         if (dto.newParentFolderId() != null) {
@@ -94,7 +97,14 @@ public class UserFolderService {
             }
 
             folder.setParentFolder(newParent);
+            modified = true;
         }
+
+        if (!modified) {
+            throw new IllegalArgumentException("No changes provided for folder update");
+        }
+
+        return userFolderMapper.toDto(folder);
     }
 
     private boolean isDescendant(UserFolderEntity folder, UserFolderEntity target) {
