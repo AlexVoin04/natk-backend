@@ -3,6 +3,7 @@ package com.natk.natk_api.userStorage.service;
 import com.natk.natk_api.userStorage.dto.FileInfoDto;
 import com.natk.natk_api.userStorage.dto.UpdateFileDto;
 import com.natk.natk_api.userStorage.dto.UploadFileDto;
+import com.natk.natk_api.userStorage.mapper.UserFileMapper;
 import com.natk.natk_api.userStorage.model.UserFileEntity;
 import com.natk.natk_api.userStorage.model.UserFolderEntity;
 import com.natk.natk_api.userStorage.repository.UserFileRepository;
@@ -31,6 +32,7 @@ public class UserFileService {
     private final UserFileRepository fileRepo;
     private final UserFolderRepository folderRepo;
     private final CurrentUserService currentUserService;
+    private final UserFileMapper userFileMapper;
 
     private static final Set<String> ALLOWED_TYPES = Set.of(
             // Документы
@@ -66,7 +68,7 @@ public class UserFileService {
     }
 
     @Transactional
-    public UserFileEntity uploadFile(UploadFileDto dto) {
+    public FileInfoDto uploadFile(UploadFileDto dto) {
         if (dto.fileData().length > MAX_FILE_SIZE_BYTES) {
             throw new IllegalArgumentException("File size exceeds 10MB limit");
         }
@@ -96,7 +98,7 @@ public class UserFileService {
         file.setDeleted(false);
         file.setDeletedAt(null);
 
-        return fileRepo.save(file);
+        return userFileMapper.toDto(fileRepo.save(file));
     }
 
     @Transactional(readOnly = true)
@@ -113,7 +115,7 @@ public class UserFileService {
         UserFileEntity file = fileRepo.findByIdAndCreatedBy(fileId, user)
                 .orElseThrow(() -> new AccessDeniedException("File not found or not owned by user"));
 
-        return new FileInfoDto(file.getId(), file.getName(), file.getFileType(), file.getCreatedAt());
+        return userFileMapper.toDto(file);
     }
 
     @Transactional
@@ -137,7 +139,7 @@ public class UserFileService {
                 .orElseThrow(() -> new AccessDeniedException("Folder not found or not owned by user"));
 
         return fileRepo.findByFolderAndIsDeletedFalse(folder).stream()
-                .map(f -> new FileInfoDto(f.getId(), f.getName(), f.getFileType(), f.getCreatedAt()))
+                .map(userFileMapper::toDto)
                 .toList();
     }
 

@@ -12,6 +12,9 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 @Setter
@@ -45,4 +48,17 @@ public class UserFolderEntity {
 
     @Column(name = "updated_at")
     private Instant updatedAt;
+
+    public String buildPath() {
+        List<String> pathSegments = new ArrayList<>();
+        UserFolderEntity current = this;
+
+        while (current != null) {
+            pathSegments.add(current.getName());
+            current = current.getParentFolder();
+        }
+
+        Collections.reverse(pathSegments);
+        return "Все файлы/" + String.join("/", pathSegments);
+    }
 }

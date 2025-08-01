@@ -3,6 +3,7 @@ package com.natk.natk_api.userStorage.service;
 import com.natk.natk_api.userStorage.dto.CreateFolderDto;
 import com.natk.natk_api.userStorage.dto.FolderDto;
 import com.natk.natk_api.userStorage.dto.UpdateFolderDto;
+import com.natk.natk_api.userStorage.mapper.UserFolderMapper;
 import com.natk.natk_api.userStorage.model.UserFolderEntity;
 import com.natk.natk_api.userStorage.repository.UserFolderRepository;
 import com.natk.natk_api.users.model.UserEntity;
@@ -22,6 +23,7 @@ public class UserFolderService {
 
     private final UserFolderRepository folderRepo;
     private final CurrentUserService currentUserService;
+    private final UserFolderMapper userFolderMapper;
 
     @Transactional
     public UserFolderEntity createFolder(CreateFolderDto dto) {
@@ -67,7 +69,7 @@ public class UserFolderService {
                 : null;
 
         return folderRepo.findByUserAndParentFolderAndIsDeletedFalse(user, parent).stream()
-                .map(f -> new FolderDto(f.getId(), f.getName()))
+                .map(userFolderMapper::toDto)
                 .toList();
     }
 

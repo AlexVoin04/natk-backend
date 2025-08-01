@@ -8,6 +8,8 @@ import com.natk.natk_api.userStorage.dto.FolderDto;
 import com.natk.natk_api.userStorage.dto.UpdateFileDto;
 import com.natk.natk_api.userStorage.dto.UpdateFolderDto;
 import com.natk.natk_api.userStorage.dto.UploadFileDto;
+import com.natk.natk_api.userStorage.mapper.UserFileMapper;
+import com.natk.natk_api.userStorage.mapper.UserFolderMapper;
 import com.natk.natk_api.userStorage.model.UserFileEntity;
 import com.natk.natk_api.userStorage.service.UserFileService;
 import com.natk.natk_api.userStorage.service.UserFolderService;
@@ -39,11 +41,13 @@ public class UserStorageController {
     private final UserFileService userFileService;
     private final UserFolderService userFolderService;
     private final UserStorageService userStorageService;
+    private final UserFileMapper userFileMapper;
+    private final UserFolderMapper userFolderMapper;
 
     @PostMapping("/folders")
     public FolderDto createFolder(@RequestBody CreateFolderDto dto) {
         var folder = userFolderService.createFolder(dto);
-        return new FolderDto(folder.getId(), folder.getName());
+        return userFolderMapper.toDto(folder);
     }
 
     @DeleteMapping("/folders/{id}")
@@ -69,8 +73,7 @@ public class UserStorageController {
     ) throws IOException {
         byte[] fileBytes = fileData.getBytes();
         UploadFileDto dto = new UploadFileDto(name, folderId, fileBytes);
-        var file = userFileService.uploadFile(dto);
-        return new FileInfoDto(file.getId(), file.getName(), file.getFileType(), file.getCreatedAt());
+        return userFileService.uploadFile(dto);
     }
 
     @GetMapping("/files/{id}")

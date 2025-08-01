@@ -43,7 +43,7 @@ public class UserStorageService {
         List<StorageItemDto> files = fetchActiveFiles(folder, user);
 
         List<StorageItemDto> combined = sortByFolderThenName(folders, files);
-        String path = buildPath(folder);
+        String path = folder != null ? folder.buildPath() : "Все файлы";
 
         return new FolderContentResponseDto(
                 folder != null ? folder.getId() : null,
@@ -117,17 +117,5 @@ public class UserStorageService {
         return Stream.concat(folders.stream(), files.stream())
                 .sorted(byTypeThenName)
                 .toList();
-    }
-
-    private String buildPath(UserFolderEntity folder) {
-        if (folder == null) return "Все файлы";
-
-        List<String> path = new ArrayList<>();
-        for (UserFolderEntity current = folder; current != null; current = current.getParentFolder()) {
-            path.add(current.getName());
-        }
-
-        Collections.reverse(path);
-        return "Все файлы/" + String.join("/", path);
     }
 }
