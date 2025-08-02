@@ -49,10 +49,9 @@ class UserFolderServiceTest {
         when(currentUserService.getCurrentUser()).thenReturn(user);
         when(folderRepo.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        UserFolderEntity created = userFolderService.createFolder(dto);
+        FolderDto created = userFolderService.createFolder(dto);
 
-        assertEquals("docs", created.getName());
-        assertEquals(user, created.getUser());
+        assertEquals("docs", created.name());
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.natk.natk_api.userStorage.service;
 
 import com.natk.natk_api.userStorage.dto.CreateFolderDto;
 import com.natk.natk_api.userStorage.dto.FolderDto;
+import com.natk.natk_api.userStorage.dto.FolderTreeDto;
 import com.natk.natk_api.userStorage.dto.UpdateFolderDto;
 import com.natk.natk_api.userStorage.mapper.UserFolderMapper;
 import com.natk.natk_api.userStorage.model.UserFolderEntity;
@@ -15,7 +16,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -26,7 +29,7 @@ public class UserFolderService {
     private final UserFolderMapper userFolderMapper;
 
     @Transactional
-    public UserFolderEntity createFolder(CreateFolderDto dto) {
+    public FolderDto createFolder(CreateFolderDto dto) {
         UserEntity user = currentUserService.getCurrentUser();
 
         UserFolderEntity folder = new UserFolderEntity();
@@ -42,7 +45,7 @@ public class UserFolderService {
                     .orElseThrow(() -> new AccessDeniedException("Parent folder not found or not owned by user"));
             folder.setParentFolder(parent);
         }
-        return folderRepo.save(folder);
+        return userFolderMapper.toDto(folderRepo.save(folder));
     }
 
     @Transactional
@@ -114,4 +117,37 @@ public class UserFolderService {
         }
         return false;
     }
+
+    @Transactional(readOnly = true)
+    public List<FolderTreeDto> getFolderTree() {
+        UserEntity user = currentUserService.getCurrentUser();
+
+        List<UserFolderEntity> allFolders = folderRepo.findByUserAndIsDeletedFalse(user);
+
+        Map<UUID, List<UserFolderEntity>> childrenMap = allFolders.stream()
+                .filter(f -> f.getParentFolder() != null)
+                .collect(Collectors.groupingBy(f -> f.getParentFolder().getId()));
+
+        List<UserFolderEntity> rootFolders = allFolders.stream()
+                .filter(f -> f.getParentFolder() == null)
+                .toList();
+
+        return rootFolders.stream()
+                .map(folder -> buildTree(folder, childrenMap, 0))
+                .toList();
+    }
+
+    private FolderTreeDto buildTree(UserFolderEntity folder, Map<UUID, List<UserFolderEntity>> childrenMap, int depth) {
+        List<FolderTreeDto> children = childrenMap.getOrDefault(folder.getId(), List.of()).stream()
+                .map(child -> buildTree(child, childrenMap, depth + 1))
+                .toList();
+
+        return new FolderTreeDto(
+                folder.getId(),
+                folder.getName(),
+                depth,
+                children
+        );
+    }
+
 }

@@ -1,5 +1,6 @@
 package com.natk.natk_api.userStorage.service;
 
+import com.natk.natk_api.userStorage.dto.FileDownloadDto;
 import com.natk.natk_api.userStorage.dto.FileInfoDto;
 import com.natk.natk_api.userStorage.dto.UpdateFileDto;
 import com.natk.natk_api.userStorage.dto.UploadFileDto;
@@ -16,7 +17,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.apache.tika.Tika;
+import org.springframework.web.util.UriUtils;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 import java.util.Set;
@@ -33,6 +36,7 @@ public class UserFileService {
     private final UserFolderRepository folderRepo;
     private final CurrentUserService currentUserService;
     private final UserFileMapper userFileMapper;
+    private final TransliterationService transliterationService;
 
     private static final Set<String> ALLOWED_TYPES = Set.of(
             // Документы
@@ -107,6 +111,15 @@ public class UserFileService {
         return fileRepo.findById(fileId)
                 .filter(f -> f.getCreatedBy().getId().equals(user.getId()))
                 .orElseThrow(() -> new AccessDeniedException("File not found or not owned by user"));
+    }
+
+    public FileDownloadDto getFileDownloadData(UUID fileId) {
+        UserFileEntity file = getFileEntity(fileId);
+        String originalName = file.getName();
+        String encodedName = UriUtils.encode(originalName, StandardCharsets.UTF_8);
+        String translitName = transliterationService.transliterate(originalName);
+
+        return new FileDownloadDto(file.getFileData(), originalName, encodedName, translitName);
     }
 
     @Transactional(readOnly = true)

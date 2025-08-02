@@ -2,15 +2,14 @@ package com.natk.natk_api.userStorage;
 
 import com.natk.natk_api.userStorage.dto.CreateFolderDto;
 import com.natk.natk_api.userStorage.dto.DeletedItemDto;
+import com.natk.natk_api.userStorage.dto.FileDownloadDto;
 import com.natk.natk_api.userStorage.dto.FileInfoDto;
 import com.natk.natk_api.userStorage.dto.FolderContentResponseDto;
 import com.natk.natk_api.userStorage.dto.FolderDto;
+import com.natk.natk_api.userStorage.dto.FolderTreeDto;
 import com.natk.natk_api.userStorage.dto.UpdateFileDto;
 import com.natk.natk_api.userStorage.dto.UpdateFolderDto;
 import com.natk.natk_api.userStorage.dto.UploadFileDto;
-import com.natk.natk_api.userStorage.mapper.UserFileMapper;
-import com.natk.natk_api.userStorage.mapper.UserFolderMapper;
-import com.natk.natk_api.userStorage.model.UserFileEntity;
 import com.natk.natk_api.userStorage.service.UserFileService;
 import com.natk.natk_api.userStorage.service.UserFolderService;
 import com.natk.natk_api.userStorage.service.UserStorageService;
@@ -41,13 +40,10 @@ public class UserStorageController {
     private final UserFileService userFileService;
     private final UserFolderService userFolderService;
     private final UserStorageService userStorageService;
-    private final UserFileMapper userFileMapper;
-    private final UserFolderMapper userFolderMapper;
 
     @PostMapping("/folders")
     public FolderDto createFolder(@RequestBody CreateFolderDto dto) {
-        var folder = userFolderService.createFolder(dto);
-        return userFolderMapper.toDto(folder);
+        return userFolderService.createFolder(dto);
     }
 
     @DeleteMapping("/folders/{id}")
@@ -63,6 +59,11 @@ public class UserStorageController {
     @PutMapping("/folders/{id}")
     public FolderDto updateFolder(@PathVariable UUID id, @RequestBody UpdateFolderDto dto) {
         return userFolderService.updateFolder(id, dto);
+    }
+
+    @GetMapping("/folders/tree")
+    public List<FolderTreeDto> getFolderTree() {
+        return userFolderService.getFolderTree();
     }
 
     @PostMapping(value = "/files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -98,11 +99,12 @@ public class UserStorageController {
 
     @GetMapping("/files/{id}/download")
     public ResponseEntity<byte[]> downloadFile(@PathVariable UUID id) {
-        UserFileEntity file = userFileService.getFileEntity(id);
+        FileDownloadDto dto = userFileService.getFileDownloadData(id);
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getName() + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + dto.translitName() + "\"; filename*=UTF-8''" + dto.encodedName())
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .body(file.getFileData());
+                .body(dto.fileData());
     }
 
     @GetMapping("/items")
