@@ -1,7 +1,5 @@
 package com.natk.natk_api.userStorage.dto;
 
-import com.natk.natk_api.userStorage.model.UserFolderEntity;
-
 import java.time.Instant;
 import java.util.UUID;
 

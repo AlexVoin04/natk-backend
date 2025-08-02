@@ -40,9 +40,8 @@ public class UserFolderService {
         folder.setUpdatedAt(null);
 
         if (dto.parentFolderId() != null) {
-            UserFolderEntity parent = folderRepo.findById(dto.parentFolderId())
-                    .filter(f -> f.getUser().getId().equals(user.getId()))
-                    .orElseThrow(() -> new AccessDeniedException("Parent folder not found or not owned by user"));
+            UserFolderEntity parent = folderRepo.findByIdAndUserAndIsDeletedFalse(dto.parentFolderId(), user)
+                    .orElseThrow(() -> new AccessDeniedException("Parent folder not found or not owned by user or deleted"));
             folder.setParentFolder(parent);
         }
         return userFolderMapper.toDto(folderRepo.save(folder));
@@ -51,9 +50,8 @@ public class UserFolderService {
     @Transactional
     public void deleteFolder(UUID folderId) {
         UserEntity user = currentUserService.getCurrentUser();
-        UserFolderEntity folder = folderRepo.findById(folderId)
-                .filter(f -> f.getUser().getId().equals(user.getId()) && !f.isDeleted())
-                .orElseThrow(() -> new AccessDeniedException("Folder not found or not owned by user"));
+        UserFolderEntity folder = folderRepo.findByIdAndUserAndIsDeletedFalse(folderId, user)
+                .orElseThrow(() -> new AccessDeniedException("Folder not found or not owned by user or deleted"));
 
         folder.setDeleted(true);
         folder.setDeletedAt(Instant.now());
@@ -66,8 +64,7 @@ public class UserFolderService {
     public List<FolderDto> listFolders(UUID parentFolderId) {
         UserEntity user = currentUserService.getCurrentUser();
         UserFolderEntity parent = parentFolderId != null
-                ? folderRepo.findById(parentFolderId)
-                .filter(f -> f.getUser().getId().equals(user.getId()))
+                ? folderRepo.findByIdAndUser(parentFolderId, user)
                 .orElseThrow(() -> new AccessDeniedException("Folder not found or not owned by user"))
                 : null;
 
@@ -76,12 +73,12 @@ public class UserFolderService {
                 .toList();
     }
 
+    //Реализовать перенос в корень
     @Transactional
     public FolderDto  updateFolder(UUID folderId, UpdateFolderDto dto) {
         UserEntity user = currentUserService.getCurrentUser();
-        UserFolderEntity folder = folderRepo.findById(folderId)
-                .filter(f -> f.getUser().getId().equals(user.getId()))
-                .orElseThrow(() -> new AccessDeniedException("Folder not found or not owned by user"));
+        UserFolderEntity folder = folderRepo.findByIdAndUserAndIsDeletedFalse(folderId, user)
+                .orElseThrow(() -> new AccessDeniedException("Folder not found or not owned by user or deleted"));
 
         boolean modified = false;
 
@@ -91,9 +88,8 @@ public class UserFolderService {
         }
 
         if (dto.newParentFolderId() != null) {
-            UserFolderEntity newParent = folderRepo.findById(dto.newParentFolderId())
-                    .filter(f -> f.getUser().getId().equals(user.getId()))
-                    .orElseThrow(() -> new AccessDeniedException("New parent folder not found or not owned by user"));
+            UserFolderEntity newParent = folderRepo.findByIdAndUserAndIsDeletedFalse(dto.newParentFolderId(), user)
+                    .orElseThrow(() -> new AccessDeniedException("New parent folder not found or not owned by user or deleted"));
 
             if (isDescendant(folder, newParent)) {
                 throw new IllegalArgumentException("Cannot move folder inside its descendant");

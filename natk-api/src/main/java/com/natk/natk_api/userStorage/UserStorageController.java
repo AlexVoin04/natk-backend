@@ -47,8 +47,9 @@ public class UserStorageController {
     }
 
     @DeleteMapping("/folders/{id}")
-    public void deleteFolder(@PathVariable UUID id) {
+    public ResponseEntity<?> deleteFolder(@PathVariable UUID id) {
         userFolderService.deleteFolder(id);
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/folders")
@@ -83,8 +84,9 @@ public class UserStorageController {
     }
 
     @DeleteMapping("/files/{id}")
-    public void deleteFile(@PathVariable UUID id) {
+    public ResponseEntity<?> deleteFile(@PathVariable UUID id) {
         userFileService.deleteFile(id);
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/files")
@@ -105,6 +107,11 @@ public class UserStorageController {
                         "attachment; filename=\"" + dto.translitName() + "\"; filename*=UTF-8''" + dto.encodedName())
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(dto.fileData());
+    }
+
+    @PostMapping("/files/{id}/copy")
+    public FileInfoDto copyFile(@PathVariable UUID id, @RequestParam UUID targetFolderId) {
+        return userFileService.copyFile(id, targetFolderId);
     }
 
     @GetMapping("/items")

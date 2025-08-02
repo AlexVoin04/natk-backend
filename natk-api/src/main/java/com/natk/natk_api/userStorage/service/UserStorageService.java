@@ -16,8 +16,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -82,8 +80,7 @@ public class UserStorageService {
     private UserFolderEntity resolveFolderOrRoot(UUID folderId, UserEntity user) {
         if (folderId == null) return null;
 
-        return folderRepo.findById(folderId)
-                .filter(f -> f.getUser().getId().equals(user.getId()))
+        return folderRepo.findByIdAndUser(folderId, user)
                 .orElseThrow(() -> new AccessDeniedException("Folder not found or not owned by user"));
     }
 
