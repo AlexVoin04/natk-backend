@@ -97,6 +97,30 @@ public class UserFileService {
         fileRepo.save(file);
     }
 
+    @Transactional
+    public FileInfoDto restoreFile(UUID fileId, UUID targetFolderId) {
+        UserEntity user = currentUserService.getCurrentUser();
+
+        UserFileEntity file = fileRepo.findByIdAndCreatedByAndIsDeletedTrue(fileId, user)
+                .orElseThrow(() -> new AccessDeniedException("File not found, already restored or not owned by user"));
+
+        UserFolderEntity targetFolder = null;
+        if (targetFolderId != null) {
+            targetFolder = folderRepo.findByIdAndUserAndIsDeletedFalse(targetFolderId, user)
+                    .orElseThrow(() -> new AccessDeniedException("Target folder not found, deleted or not owned by user"));
+        }
+
+        String uniqueName = fileNameResolverService.generateUniqueFileName(file.getName(), targetFolder, user);
+
+        file.setName(uniqueName);
+        file.setDeleted(false);
+        file.setDeletedAt(null);
+        file.setFolder(targetFolder);
+
+        fileRepo.save(file);
+        return userFileMapper.toDto(fileRepo.save(file));
+    }
+
     @Transactional(readOnly = true)
     public List<FileInfoDto> listFiles(UUID folderId) {
         UserEntity user = currentUserService.getCurrentUser();

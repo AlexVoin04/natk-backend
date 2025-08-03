@@ -52,6 +52,15 @@ public class UserStorageController {
         return ResponseEntity.ok().build();
     }
 
+    @PutMapping("/folders/{id}/restore")
+    public FolderDto restoreFolder(
+            @PathVariable UUID id,
+            @RequestParam(required = false) UUID targetParentFolderId
+    ) {
+        return userFolderService.restoreFolder(id, targetParentFolderId);
+
+    }
+
     @GetMapping("/folders")
     public List<FolderDto> listFolders(@RequestParam(required = false) UUID parentId) {
         return userFolderService.listFolders(parentId);
@@ -87,6 +96,14 @@ public class UserStorageController {
     public ResponseEntity<?> deleteFile(@PathVariable UUID id) {
         userFileService.deleteFile(id);
         return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/files/{id}/restore")
+    public FileInfoDto restoreFile(
+            @PathVariable UUID id,
+            @RequestParam(required = false) UUID targetFolderId
+    ) {
+        return userFileService.restoreFile(id, targetFolderId);
     }
 
     @GetMapping("/files")

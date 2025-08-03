@@ -18,9 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
@@ -54,20 +52,13 @@ public class UserStorageService {
     public List<DeletedItemDto> getDeletedItems() {
         UserEntity user = currentUserService.getCurrentUser();
 
-        List<UserFolderEntity> deletedFolders = folderRepo
-                .findByUserAndIsDeletedTrueOrderByDeletedAtDesc(user);
-
-        Set<UUID> deletedFolderIds = deletedFolders.stream()
-                .map(UserFolderEntity::getId)
-                .collect(Collectors.toSet());
-
-        List<DeletedItemDto> folders = deletedFolders.stream()
+        List<DeletedItemDto> folders = folderRepo
+                .findByUserAndIsDeletedTrueOrderByDeletedAtDesc(user).stream()
                 .map(mapper::toDeletedItem)
                 .toList();
 
         List<DeletedItemDto> files = fileRepo
                 .findByCreatedByAndIsDeletedTrueOrderByDeletedAtDesc(user).stream()
-                .filter(f -> f.getFolder() == null || !deletedFolderIds.contains(f.getFolder().getId()))
                 .map(mapper::toDeletedItem)
                 .toList();
 

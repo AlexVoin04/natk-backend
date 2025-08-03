@@ -5,8 +5,6 @@ import com.natk.natk_api.userStorage.model.UserFolderEntity;
 import com.natk.natk_api.userStorage.repository.UserFileRepository;
 import com.natk.natk_api.userStorage.repository.UserFolderRepository;
 import com.natk.natk_api.users.model.UserEntity;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,41 +22,36 @@ public class StorageLifecycleService {
     @Transactional
     public void deleteFolderRecursive(UserFolderEntity folder, UserEntity user) {
         Instant now = Instant.now();
+        FolderTree tree = collectTree(folder, user, false);
 
-        List<UserFileEntity> files = fileRepo.findByCreatedByAndFolderAndIsDeletedFalse(user, folder);
-        files.forEach(file -> {
+        tree.files().forEach(file -> {
             file.setDeleted(true);
             file.setDeletedAt(now);
         });
-        fileRepo.saveAll(files);
+        fileRepo.saveAll(tree.files());
 
-        List<UserFolderEntity> children = folderRepo.findByUserAndParentFolderAndIsDeletedFalse(user, folder);
-        for (UserFolderEntity child : children) {
-            deleteFolderRecursive(child, user);
-        }
-
-        folder.setDeleted(true);
-        folder.setDeletedAt(now);
-        folderRepo.save(folder);
+        tree.folders().forEach(f -> {
+            f.setDeleted(true);
+            f.setDeletedAt(now);
+        });
+        folderRepo.saveAll(tree.folders());
     }
 
     @Transactional
     public void restoreFolderRecursive(UserFolderEntity folder, UserEntity user) {
-        folder.setDeleted(false);
-        folder.setDeletedAt(null);
-        folderRepo.save(folder);
+        FolderTree tree = collectTree(folder, user, true);
 
-        List<UserFileEntity> files = fileRepo.findByCreatedByAndFolderAndIsDeletedTrue(user, folder);
-        files.forEach(file -> {
+        tree.files().forEach(file -> {
             file.setDeleted(false);
             file.setDeletedAt(null);
         });
-        fileRepo.saveAll(files);
+        fileRepo.saveAll(tree.files());
 
-        List<UserFolderEntity> children = folderRepo.findByUserAndParentFolderAndIsDeletedTrue(user, folder);
-        for (UserFolderEntity child : children) {
-            restoreFolderRecursive(child, user);
-        }
+        tree.folders().forEach(f -> {
+            f.setDeleted(false);
+            f.setDeletedAt(null);
+        });
+        folderRepo.saveAll(tree.folders());
     }
 
     /**

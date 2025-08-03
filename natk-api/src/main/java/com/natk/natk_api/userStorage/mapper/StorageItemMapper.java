@@ -34,7 +34,9 @@ public class StorageItemMapper {
                 folder.getId(),
                 folder.getName(),
                 "folder",
-                folder.getDeletedAt()
+                folder.getDeletedAt(),
+                resolvePath(folder.getParentFolder()),
+                folder.getParentFolder() != null ? folder.getParentFolder().getId() : null
         );
     }
 
@@ -43,7 +45,23 @@ public class StorageItemMapper {
                 file.getId(),
                 file.getName(),
                 file.getFileType(),
-                file.getDeletedAt()
+                file.getDeletedAt(),
+                resolvePath(file.getFolder()),
+                file.getFolder() != null ? file.getFolder().getId() : null
         );
+    }
+
+    private String resolvePath(UserFolderEntity folder) {
+        if (folder == null) return "Облако";
+
+        UserFolderEntity current = folder;
+        while (current != null) {
+            if (current.isDeleted()) {
+                return "Облако";
+            }
+            current = current.getParentFolder();
+        }
+
+        return folder.buildPath();
     }
 }

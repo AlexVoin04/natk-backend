@@ -28,7 +28,6 @@ public class UserFolderService {
     private final CurrentUserService currentUserService;
     private final UserFolderMapper userFolderMapper;
     private final FolderNameResolverService folderNameResolverService;
-    private final StorageLifecycleService storageLifecycleService;
 
     @Transactional
     public FolderDto createFolder(CreateFolderDto dto) {
@@ -53,22 +52,45 @@ public class UserFolderService {
         return userFolderMapper.toDto(folderRepo.save(folder));
     }
 
+    /*TODO:
+       1.storageLifecycleService.deleteFolderRecursive(folder, user); - рекурсивное удаление сдержимого папки
+     */
     @Transactional
     public void deleteFolder(UUID folderId) {
         UserEntity user = currentUserService.getCurrentUser();
         UserFolderEntity folder = folderRepo.findByIdAndUserAndIsDeletedFalse(folderId, user)
                 .orElseThrow(() -> new AccessDeniedException("Folder not found or not owned by user or deleted"));
 
-        storageLifecycleService.deleteFolderRecursive(folder, user);
+        folder.setDeleted(true);
+        folder.setDeletedAt(Instant.now());
+        folderRepo.save(folder);
     }
 
+    /*TODO:
+       1.возможно првоерять дубликат имени
+       2.storageLifecycleService.restoreFolderRecursive(folder, user); - рекурсивное восстановление сдержимого папки
+     */
     @Transactional
-    public void restoreFolder(UUID folderId) {
+    public FolderDto restoreFolder(UUID folderId, UUID targetParentFolderId) {
         UserEntity user = currentUserService.getCurrentUser();
         UserFolderEntity folder = folderRepo.findByIdAndUserAndIsDeletedTrue(folderId, user)
                 .orElseThrow(() -> new AccessDeniedException("Folder not found or not owned by user or not deleted"));
 
-        storageLifecycleService.restoreFolderRecursive(folder, user);
+        UserFolderEntity targetParent = null;
+        if (targetParentFolderId != null) {
+            targetParent = folderRepo.findByIdAndUserAndIsDeletedFalse(targetParentFolderId, user)
+                    .orElseThrow(() -> new AccessDeniedException("Target parent folder not found, deleted or not owned by user"));
+        }
+
+        if (isDescendant(folder, targetParent)) {
+            throw new IllegalArgumentException("Cannot restore folder into its own descendant");
+        }
+
+        folder.setParentFolder(targetParent);
+        folder.setDeleted(false);
+        folder.setDeletedAt(null);
+        folderRepo.save(folder);
+        return userFolderMapper.toDto(folderRepo.save(folder));
     }
 
     @Transactional(readOnly = true)

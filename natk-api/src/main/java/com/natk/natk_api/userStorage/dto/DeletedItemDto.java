@@ -7,5 +7,7 @@ public record DeletedItemDto(
         UUID id,
         String name,
         String type,
-        Instant deletedAt
+        Instant deletedAt,
+        String path,
+        UUID parentFolder
 ) {}
