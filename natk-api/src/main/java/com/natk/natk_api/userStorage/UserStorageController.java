@@ -110,7 +110,7 @@ public class UserStorageController {
     }
 
     @PostMapping("/files/{id}/copy")
-    public FileInfoDto copyFile(@PathVariable UUID id, @RequestParam UUID targetFolderId) {
+    public FileInfoDto copyFile(@PathVariable UUID id, @RequestParam(required = false) UUID targetFolderId) {
         return userFileService.copyFile(id, targetFolderId);
     }
 

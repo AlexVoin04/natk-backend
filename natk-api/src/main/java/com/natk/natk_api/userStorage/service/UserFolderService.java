@@ -27,6 +27,8 @@ public class UserFolderService {
     private final UserFolderRepository folderRepo;
     private final CurrentUserService currentUserService;
     private final UserFolderMapper userFolderMapper;
+    private final FolderNameResolverService folderNameResolverService;
+    private final StorageLifecycleService storageLifecycleService;
 
     @Transactional
     public FolderDto createFolder(CreateFolderDto dto) {
@@ -42,8 +44,12 @@ public class UserFolderService {
         if (dto.parentFolderId() != null) {
             UserFolderEntity parent = folderRepo.findByIdAndUserAndIsDeletedFalse(dto.parentFolderId(), user)
                     .orElseThrow(() -> new AccessDeniedException("Parent folder not found or not owned by user or deleted"));
+            folderNameResolverService.ensureUniqueNameOrThrow(dto.name(), parent, user);
             folder.setParentFolder(parent);
+        }else {
+            folderNameResolverService.ensureUniqueNameOrThrow(dto.name(), null, user);
         }
+
         return userFolderMapper.toDto(folderRepo.save(folder));
     }
 
@@ -53,11 +59,16 @@ public class UserFolderService {
         UserFolderEntity folder = folderRepo.findByIdAndUserAndIsDeletedFalse(folderId, user)
                 .orElseThrow(() -> new AccessDeniedException("Folder not found or not owned by user or deleted"));
 
-        folder.setDeleted(true);
-        folder.setDeletedAt(Instant.now());
-        folder.setUpdatedAt(Instant.now());
+        storageLifecycleService.deleteFolderRecursive(folder, user);
+    }
 
-        folderRepo.save(folder);
+    @Transactional
+    public void restoreFolder(UUID folderId) {
+        UserEntity user = currentUserService.getCurrentUser();
+        UserFolderEntity folder = folderRepo.findByIdAndUserAndIsDeletedTrue(folderId, user)
+                .orElseThrow(() -> new AccessDeniedException("Folder not found or not owned by user or not deleted"));
+
+        storageLifecycleService.restoreFolderRecursive(folder, user);
     }
 
     @Transactional(readOnly = true)
@@ -73,7 +84,6 @@ public class UserFolderService {
                 .toList();
     }
 
-    //Реализовать перенос в корень
     @Transactional
     public FolderDto  updateFolder(UUID folderId, UpdateFolderDto dto) {
         UserEntity user = currentUserService.getCurrentUser();
@@ -87,14 +97,23 @@ public class UserFolderService {
             modified = true;
         }
 
-        if (dto.newParentFolderId() != null) {
-            UserFolderEntity newParent = folderRepo.findByIdAndUserAndIsDeletedFalse(dto.newParentFolderId(), user)
+        if (Boolean.TRUE.equals(dto.moveToRoot())) {
+            folderNameResolverService.ensureUniqueNameOrThrow(dto.newName(), null, user);
+            folder.setParentFolder(null);
+            modified = true;
+        }
+
+        else if (dto.newParentFolderId().isPresent()) {
+            UUID newParentId = dto.newParentFolderId().get();
+
+            UserFolderEntity newParent = folderRepo.findByIdAndUserAndIsDeletedFalse(newParentId, user)
                     .orElseThrow(() -> new AccessDeniedException("New parent folder not found or not owned by user or deleted"));
 
             if (isDescendant(folder, newParent)) {
                 throw new IllegalArgumentException("Cannot move folder inside its descendant");
             }
 
+            folderNameResolverService.ensureUniqueNameOrThrow(dto.newName(), newParent, user);
             folder.setParentFolder(newParent);
             modified = true;
         }
@@ -145,5 +164,4 @@ public class UserFolderService {
                 children
         );
     }
-
 }

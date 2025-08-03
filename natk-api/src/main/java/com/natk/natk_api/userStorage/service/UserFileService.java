@@ -122,7 +122,12 @@ public class UserFileService {
             modified = true;
         }
 
-        if (dto.newFolderId() != null) {
+        if (Boolean.TRUE.equals(dto.moveToRoot())) {
+            file.setFolder(null);
+            modified = true;
+        }
+
+        else if (dto.newFolderId() != null) {
             UserFolderEntity newFolder = folderRepo.findByIdAndUserAndIsDeletedFalse(dto.newFolderId(), user)
                     .orElseThrow(() -> new AccessDeniedException("Folder not found or not owned by user or deleted"));
 
