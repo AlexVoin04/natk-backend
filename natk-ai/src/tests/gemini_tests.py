@@ -17,6 +17,9 @@ class RealGeminiIntegrationTest(unittest.IsolatedAsyncioTestCase):
             file_bytes = f.read()
 
         uploaded_files = await gemini_service.upload_files_to_gemini([file_bytes])
+        print("Uploaded files:", uploaded_files)
+        for uf in uploaded_files:
+            print(type(uf), uf)
 
         result_text = gemini_service.generate_gemini_response(uploaded_files, user_prompt)
 

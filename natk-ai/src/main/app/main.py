@@ -12,7 +12,7 @@ async def process_file(
     question: str = Form(...),
     files: List[UploadFile] = File(...)
 ):
-    prompt_template = gemini_service.load_prompt_template("static/prompt/prompt_template.txt")
+    prompt_template = gemini_service.load_prompt_template("src/main/static/prompt/prompt_template.txt")
     user_prompt = gemini_service.create_user_prompt(prompt_template, question)
 
     file_contents = [await f.read() for f in files]

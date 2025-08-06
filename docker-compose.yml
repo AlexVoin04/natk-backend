@@ -32,7 +32,7 @@ services:
       - natk-net
 
   natk-api:
-    image: 'natk-api:0.0.4'
+    image: 'natk-api:0.0.5'
     build: ./natk-api
     environment:
       - DB_NAME=${DB_NAME}
@@ -49,17 +49,17 @@ services:
     networks:
       - natk-net
 
-    natk-ai:
-      image: 'natk-ai:0.0.1'
-      build: ./natk-ai
-      environment:
-        - GEMINI_API_KEY=${GEMINI_API_KEY}
-      ports:
-        - "8002:8500"
-      depends_on:
-        - natk-api
-      networks:
-        - natk-net
+  natk-ai:
+    image: 'natk-ai:0.0.1'
+    build: ./natk-ai
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    ports:
+      - "8002:8080"
+    depends_on:
+      - natk-api
+    networks:
+      - natk-net
 
 volumes:
   pgdata:
