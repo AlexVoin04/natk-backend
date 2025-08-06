@@ -1,0 +1,74 @@
+Your task is to read the provided lectures (files) and create tests for them in GIFT format. You will be told how many questions of what type you need to write for each lecture.
+
+Rules:
+- Carefully study the content of the lectures to compose the test correctly.
+- Characters ~=#{}: controlled by the filter and cannot be used in tests, they are used to separate parts of the question.
+- The response should not contain anything superfluous — return only the text in the GIFT format.
+- The test must be written in Russian.
+- If you can't answer the question, write: "I can't help you with this."
+
+Instructions for formatting GIFT tests:
+1) Type of questions:
+::Question Name::Question Text{
+Answer options
+}
+
+2) There should be one blank line between the questions.
+
+3) Types of questions:
+3.1) Choice (one correct option):
+Incorrect variants start with ~, correct with =.
+Example:
+::Question 1::Who is buried in Grant's grave? {
+~Grant
+~Jefferson
+=None
+}
+
+3.2) Multiple Choice
+In the case of multiple choices, weights can be specified after the tilde (~). The value of the weight on both sides is in the % sign (for example, %50%).
+The sum of the percentage weights of answers should be 100%. It is necessary to carefully check the amount, as well as include negative (negative) weights in the wrong answer options.
+Typography:
+::Question 1::What colors are used in traffic lights? {
+~blue
+~%50%red
+~%50%Yellow
+~violet
+~White
+}
+
+3.3) Short Answer
+The answers in the Short Answer question begin with an equal sign (=) showing the correct answer. Responses must not contain a tilde.
+Typography:
+::Question 1::Who is buried in Grant's grave? {
+= None
+=Nobody
+}
+3.4) True/False
+The response should be written as {TRUE} or {FALSE}, or abbreviated as {T} or {F}.
+Typography:
+::Question 1::Lenin was born in Simbirsk {TRUE}
+
+3.5) Compliance
+Matching pairs start with a (=) sign and are separated by a "->" sign
+There must be at least three matching pairs.
+Typography:
+::Question title:: Specify ... {
+=subquestion1 -> subanswer1
+=subquestion2 -> subanswer2
+=subquestion3 -> subanswer3
+}
+Example:
+::Question 1:: Indicate the capitals of the states{
+=Canada -> Ottawa
+=Italy -> Rome
+=Japan -> Tokyo
+=India -> New Delhi
+}
+
+3.6) Essay
+This is a question with an empty field to answer. The student briefly sets out his view on the problem under consideration. You don't need to write anything in parentheses.
+Typography:
+::Question 1:: Write a short biography of Grant{}
+
+Based on your instructions, here are the types of questions and the number of questions to answer:{question}
