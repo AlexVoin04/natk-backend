@@ -4,6 +4,7 @@ Rules:
 - Carefully study the content of the lectures to compose the test correctly.
 - Characters ~=#{}: controlled by the filter and cannot be used in tests, they are used to separate parts of the question.
 - The response should not contain anything superfluous — return only the text in the GIFT format.
+- - For each question, enter a name in the format: "Вопрос question_number: a short description corresponding to the topic of the question"
 - The test must be written in Russian.
 - If you can't answer the question, write: "I can't help you with this."
 
@@ -38,10 +39,10 @@ Typography:
 }
 
 3.3) Short Answer
-The answers in the Short Answer question begin with an equal sign (=) showing the correct answer. Responses must not contain a tilde.
+The answers in the Short Answer question begin with an equal sign (=) showing the correct answer. Responses must not contain a tilde. The answer in this type of test must be either a word or a phrase.
 Typography:
 ::Question 1::Who is buried in Grant's grave? {
-= None
+=None
 =Nobody
 }
 3.4) True/False

@@ -49,6 +49,16 @@ services:
     networks:
       - natk-net
 
+  natk-pdf:
+    image: 'natk-pdf:0.0.1'
+    build: ./natk-pdf
+    ports:
+      - "8003:8080"
+    depends_on:
+      - natk-api
+    networks:
+      - natk-net
+
   natk-ai:
     image: 'natk-ai:0.0.1'
     build: ./natk-ai

@@ -26,6 +26,7 @@ import java.util.UUID;
 public class QuestionGenerationService {
     private final UserFileRepository fileRepo;
     private final CurrentUserService currentUserService;
+//    private final PdfConverter pdfConverter = new PdfConverter();
 
     private final RestClient restClient = RestClient.builder()
             .baseUrl("http://natk-ai:8080")
@@ -73,7 +74,19 @@ public class QuestionGenerationService {
         bodyBuilder.part("question", questionText);
 
         for (UserFileEntity file : files) {
-            ByteArrayResource resource = new ByteArrayResource(file.getFileData()) {
+            byte[] fileData;
+
+            if (!file.getName().toLowerCase().endsWith(".pdf")) {
+                try {
+                    fileData = normalizeToPdf(file);  // вызов внешнего сервиса
+                } catch (Exception e) {
+                    throw new IllegalArgumentException("Failed to convert file to PDF: " + file.getName(), e);
+                }
+            } else {
+                fileData = file.getFileData();
+            }
+
+            ByteArrayResource resource = new ByteArrayResource(fileData) {
                 @Override
                 public String getFilename() {
                     return file.getName();
@@ -81,10 +94,27 @@ public class QuestionGenerationService {
             };
             bodyBuilder.part("files", resource)
                     .header("Content-Disposition",
-                            "form-data; name=\"files\"; filename=\"" + file.getName() + "\"");
+                            "form-data; name=\"files\"; filename=\"" + resource.getFilename() + "\"");
         }
 
         return bodyBuilder.build();
+    }
+
+    private byte[] normalizeToPdf(UserFileEntity file) {
+        MultipartBodyBuilder builder = new MultipartBodyBuilder();
+        builder.part("file", new ByteArrayResource(file.getFileData()) {
+            @Override
+            public String getFilename() {
+                return file.getName();
+            }
+        });
+
+        return restClient.post()
+                .uri("http://natk-pdf:8080/convert")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(builder.build())
+                .retrieve()
+                .body(byte[].class);
     }
 
     /**
