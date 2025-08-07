@@ -16,6 +16,7 @@ import com.natk.natk_api.userStorage.dto.UploadFileDto;
 import com.natk.natk_api.userStorage.service.UserFileService;
 import com.natk.natk_api.userStorage.service.UserFolderService;
 import com.natk.natk_api.userStorage.service.UserStorageService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -131,7 +132,7 @@ public class UserStorageController {
     }
 
     @PostMapping("files/generate-questions")
-    public ResponseEntity<QuestionResponseDto> generateQuestions(@RequestBody QuestionRequestDto dto) throws IOException {
+    public ResponseEntity<QuestionResponseDto> generateQuestions(@RequestBody @Valid QuestionRequestDto dto) throws IOException {
         String result = questionGenerationService.generateQuestions(dto.fileIds(), dto.questionCounts());
         return ResponseEntity.ok(new QuestionResponseDto(result));
     }
