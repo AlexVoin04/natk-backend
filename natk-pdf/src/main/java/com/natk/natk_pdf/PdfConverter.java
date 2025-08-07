@@ -12,27 +12,33 @@ import java.io.IOException;
 @Service
 public class PdfConverter {
 
-    private final LocalOfficeManager officeManager;
     private final LocalConverter converter;
 
-    public PdfConverter() {
-        this.officeManager = LocalOfficeManager.builder().install().build();
-        try {
-            officeManager.start();
-        } catch (OfficeException e) {
-            throw new RuntimeException("Failed to start LibreOffice", e);
-        }
-
+    public PdfConverter(LocalOfficeManager officeManager) {
         this.converter = LocalConverter.make(officeManager);
     }
 
-    public byte[] convertToPdf(byte[] inputBytes, String filename) throws IOException, OfficeException {
-        File inputFile = File.createTempFile("input-", "-" + filename);
-        File outputFile = File.createTempFile("output-", ".pdf");
+    public byte[] convertToPdf(byte[] inputBytes, String filename){
+        File inputFile = null;
+        File outputFile = null;
 
-        FileUtils.writeByteArrayToFile(inputFile, inputBytes);
-        converter.convert(inputFile).to(outputFile).execute();
+        try {
+            inputFile = File.createTempFile("input-", "-" + filename);
+            outputFile = File.createTempFile("output-", ".pdf");
 
-        return FileUtils.readFileToByteArray(outputFile);
+            FileUtils.writeByteArrayToFile(inputFile, inputBytes);
+            converter.convert(inputFile).to(outputFile).execute();
+
+            return FileUtils.readFileToByteArray(outputFile);
+        } catch (OfficeException | IOException e) {
+            throw new RuntimeException("PDF conversion failed");
+        } finally {
+            if (inputFile != null && !inputFile.delete()) {
+                System.err.println("Failed to delete temp input file: " + inputFile.getAbsolutePath());
+            }
+            if (outputFile != null && !outputFile.delete()) {
+                System.err.println("Failed to delete temp output file: " + outputFile.getAbsolutePath());
+            }
+        }
     }
 }

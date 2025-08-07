@@ -20,9 +20,7 @@ public class PdfController {
 
     @PostMapping("/convert")
     public ResponseEntity<byte[]> convertToPdf(@RequestParam("file") MultipartFile file) throws IOException, OfficeException {
-        String filename = file.getOriginalFilename();
-
-        byte[] pdfBytes = pdfConverter.convertToPdf(file.getBytes(), filename);
+        byte[] pdfBytes = pdfConverter.convertToPdf(file.getBytes(), file.getOriginalFilename());
 
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_PDF)

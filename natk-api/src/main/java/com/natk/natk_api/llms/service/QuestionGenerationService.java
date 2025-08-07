@@ -26,11 +26,7 @@ import java.util.UUID;
 public class QuestionGenerationService {
     private final UserFileRepository fileRepo;
     private final CurrentUserService currentUserService;
-//    private final PdfConverter pdfConverter = new PdfConverter();
-
-    private final RestClient restClient = RestClient.builder()
-            .baseUrl("http://natk-ai:8080")
-            .build();
+    private final RestClient restClient;
 
     public String generateQuestions(List<UUID> fileIds, Map<QuestionType, Integer> questionCounts) {
         UserEntity user = currentUserService.getCurrentUser();
@@ -78,7 +74,7 @@ public class QuestionGenerationService {
 
             if (!file.getName().toLowerCase().endsWith(".pdf")) {
                 try {
-                    fileData = normalizeToPdf(file);  // вызов внешнего сервиса
+                    fileData = normalizeToPdf(file);
                 } catch (Exception e) {
                     throw new IllegalArgumentException("Failed to convert file to PDF: " + file.getName(), e);
                 }
@@ -123,7 +119,7 @@ public class QuestionGenerationService {
     private String sendRequest(MultiValueMap<String, HttpEntity<?>> multipartData) {
         try {
             Map<String, String> response = restClient.post()
-                    .uri("/process-file/")
+                    .uri("http://natk-ai:8080/process-file/")
                     .contentType(MediaType.MULTIPART_FORM_DATA)
                     .body(multipartData)
                     .retrieve()
