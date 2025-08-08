@@ -5,10 +5,12 @@ import org.jodconverter.core.office.OfficeException;
 import org.jodconverter.local.LocalConverter;
 import org.jodconverter.local.office.LocalOfficeManager;
 import org.springframework.stereotype.Service;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.IOException;
 
+@Slf4j
 @Service
 public class PdfConverter {
 
@@ -31,14 +33,21 @@ public class PdfConverter {
 
             return FileUtils.readFileToByteArray(outputFile);
         } catch (OfficeException | IOException e) {
-            throw new RuntimeException("PDF conversion failed");
+            throw new RuntimeException("PDF conversion failed", e);
         } finally {
             if (inputFile != null && !inputFile.delete()) {
-                System.err.println("Failed to delete temp input file: " + inputFile.getAbsolutePath());
+                log.info("Failed to delete temp input file: {}", inputFile.getAbsolutePath());
             }
             if (outputFile != null && !outputFile.delete()) {
-                System.err.println("Failed to delete temp output file: " + outputFile.getAbsolutePath());
+                log.info("Failed to delete temp output file: {}", outputFile.getAbsolutePath());
             }
         }
+    }
+
+    public String buildPdfFileName(String baseName){
+        if (baseName != null && baseName.contains(".")) {
+            baseName = baseName.substring(0, baseName.lastIndexOf('.'));
+        }
+        return  (baseName != null ? baseName : "converted") + ".pdf";
     }
 }

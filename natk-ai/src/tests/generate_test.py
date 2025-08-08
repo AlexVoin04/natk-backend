@@ -32,7 +32,7 @@ class ProcessFileTestCase(unittest.TestCase):
 
         data = {"question": "What is AI?"}
 
-        response = client.post("/process-file/", data=data, files=files)
+        response = client.post("/generate-questions/", data=data, files=files)
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("result", response.json())

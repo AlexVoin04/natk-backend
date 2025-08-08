@@ -9,8 +9,8 @@ from src.main.app.exceptions import GeminiAPIError
 app = FastAPI()
 load_dotenv()
 
-@app.post("/process-file/")
-async def process_file(
+@app.post("/generate-questions/")
+async def generate_questions(
     question: str = Form(...),
     files: List[UploadFile] = File(...)
 ):

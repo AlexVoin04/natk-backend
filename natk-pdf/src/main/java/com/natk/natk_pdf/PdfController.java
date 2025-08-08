@@ -1,7 +1,6 @@
 package com.natk.natk_pdf;
 
 import lombok.RequiredArgsConstructor;
-import org.jodconverter.core.office.OfficeException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -19,12 +18,14 @@ public class PdfController {
     private final PdfConverter pdfConverter;
 
     @PostMapping("/convert")
-    public ResponseEntity<byte[]> convertToPdf(@RequestParam("file") MultipartFile file) throws IOException, OfficeException {
+    public ResponseEntity<byte[]> convertToPdf(@RequestParam("file") MultipartFile file) throws IOException {
+        String outputName = pdfConverter.buildPdfFileName(file.getOriginalFilename());
         byte[] pdfBytes = pdfConverter.convertToPdf(file.getBytes(), file.getOriginalFilename());
 
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_PDF)
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"converted.pdf\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + outputName + "\"")
                 .body(pdfBytes);
     }
 }

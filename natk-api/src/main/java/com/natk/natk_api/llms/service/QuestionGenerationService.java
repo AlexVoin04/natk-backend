@@ -1,8 +1,11 @@
 package com.natk.natk_api.llms.service;
 
+import com.natk.natk_api.llms.dto.FailedFileInfo;
+import com.natk.natk_api.llms.FileConversionException;
 import com.natk.natk_api.llms.QuestionType;
 import com.natk.natk_api.userStorage.model.UserFileEntity;
 import com.natk.natk_api.userStorage.repository.UserFileRepository;
+import com.natk.natk_api.userStorage.service.MimeTypeValidatorService;
 import com.natk.natk_api.users.model.UserEntity;
 import com.natk.natk_api.users.service.CurrentUserService;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +20,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClient;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -26,6 +30,7 @@ import java.util.UUID;
 public class QuestionGenerationService {
     private final UserFileRepository fileRepo;
     private final CurrentUserService currentUserService;
+    private final MimeTypeValidatorService mimeTypeValidatorService;
     private final RestClient restClient;
 
     public String generateQuestions(List<UUID> fileIds, Map<QuestionType, Integer> questionCounts) {
@@ -69,31 +74,50 @@ public class QuestionGenerationService {
         MultipartBodyBuilder bodyBuilder = new MultipartBodyBuilder();
         bodyBuilder.part("question", questionText);
 
+        List<FailedFileInfo> failedFiles = new ArrayList<>();
+
         for (UserFileEntity file : files) {
-            byte[] fileData;
+            processFile(file, bodyBuilder, failedFiles);
+        }
 
-            if (!file.getName().toLowerCase().endsWith(".pdf")) {
-                try {
-                    fileData = normalizeToPdf(file);
-                } catch (Exception e) {
-                    throw new IllegalArgumentException("Failed to convert file to PDF: " + file.getName(), e);
-                }
-            } else {
-                fileData = file.getFileData();
-            }
-
-            ByteArrayResource resource = new ByteArrayResource(fileData) {
-                @Override
-                public String getFilename() {
-                    return file.getName();
-                }
-            };
-            bodyBuilder.part("files", resource)
-                    .header("Content-Disposition",
-                            "form-data; name=\"files\"; filename=\"" + resource.getFilename() + "\"");
+        if (!failedFiles.isEmpty()) {
+            throw new FileConversionException(failedFiles);
         }
 
         return bodyBuilder.build();
+    }
+
+    private void processFile(UserFileEntity file,
+                             MultipartBodyBuilder bodyBuilder,
+                             List<FailedFileInfo> failedFiles) {
+
+        byte[] fileData = file.getFileData();
+        String mimeType = mimeTypeValidatorService.detectMimeType(fileData);
+
+        if (mimeType.equals("application/pdf")) {
+            addFilePart(bodyBuilder, file.getName(), fileData);
+        } else if (mimeTypeValidatorService.isConvertibleToPdf(fileData)) {
+            try {
+                fileData = normalizeToPdf(file);
+                addFilePart(bodyBuilder, file.getName().replaceAll("\\.[^.]+$", ".pdf"), fileData);
+            } catch (Exception e) {
+                failedFiles.add(new FailedFileInfo(file.getId(), file.getName(), e.getMessage()));
+            }
+        } else {
+            failedFiles.add(new FailedFileInfo(file.getId(), file.getName(), "File cannot be converted to PDF"));
+        }
+    }
+
+    private void addFilePart(MultipartBodyBuilder bodyBuilder, String fileName, byte[] fileData) {
+        ByteArrayResource resource = new ByteArrayResource(fileData) {
+            @Override
+            public String getFilename() {
+                return fileName;
+            }
+        };
+        bodyBuilder.part("files", resource)
+                .header("Content-Disposition",
+                        "form-data; name=\"files\"; filename=\"" + resource.getFilename() + "\"");
     }
 
     private byte[] normalizeToPdf(UserFileEntity file) {
@@ -119,7 +143,7 @@ public class QuestionGenerationService {
     private String sendRequest(MultiValueMap<String, HttpEntity<?>> multipartData) {
         try {
             Map<String, String> response = restClient.post()
-                    .uri("http://natk-ai:8080/process-file/")
+                    .uri("http://natk-ai:8080/generate-questions/")
                     .contentType(MediaType.MULTIPART_FORM_DATA)
                     .body(multipartData)
                     .retrieve()
