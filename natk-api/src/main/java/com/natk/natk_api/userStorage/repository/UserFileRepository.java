@@ -13,6 +13,7 @@ public interface UserFileRepository extends JpaRepository<UserFileEntity, UUID> 
     Optional<UserFileEntity> findByIdAndCreatedBy(UUID id, UserEntity createdBy);
     Optional<UserFileEntity> findByIdAndCreatedByAndIsDeletedFalse(UUID id, UserEntity createdBy);
     Optional<UserFileEntity> findByIdAndCreatedByAndIsDeletedTrue(UUID id, UserEntity createdBy);
+    List<UserFileEntity> findAllByIdInAndCreatedBy(List<UUID> ids, UserEntity createdBy);
     List<UserFileEntity> findByFolderAndIsDeletedFalse(UserFolderEntity folder);
     List<UserFileEntity> findByCreatedByAndFolderIsNullAndIsDeletedFalse(UserEntity createdBy);
     List<UserFileEntity> findByCreatedByAndIsDeletedTrueOrderByDeletedAtDesc(UserEntity createdBy);

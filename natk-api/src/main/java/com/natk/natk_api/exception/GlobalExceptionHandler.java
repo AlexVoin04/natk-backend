@@ -1,7 +1,9 @@
 package com.natk.natk_api.exception;
 
+import com.natk.natk_api.llms.FileConversionException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -36,6 +38,17 @@ public class GlobalExceptionHandler {
         }
 
         return HttpServletResponse.SC_BAD_REQUEST;
+    }
+
+    @ExceptionHandler(FileConversionException.class)
+    public ResponseEntity<FileConversionErrorResponse> handleFileConversion(FileConversionException ex) {
+        FileConversionErrorResponse body = new FileConversionErrorResponse(
+                HttpStatus.UNPROCESSABLE_ENTITY.value(),
+                HttpStatus.UNPROCESSABLE_ENTITY.getReasonPhrase(),
+                ex.getMessage(),
+                ex.getFailedFiles()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
     private String resolveErrorMessage(int status) {

@@ -1,5 +1,8 @@
 package com.natk.natk_api.userStorage;
 
+import com.natk.natk_api.llms.dto.QuestionRequestDto;
+import com.natk.natk_api.llms.dto.QuestionResponseDto;
+import com.natk.natk_api.llms.service.QuestionGenerationService;
 import com.natk.natk_api.userStorage.dto.CreateFolderDto;
 import com.natk.natk_api.userStorage.dto.DeletedItemDto;
 import com.natk.natk_api.userStorage.dto.FileDownloadDto;
@@ -13,6 +16,7 @@ import com.natk.natk_api.userStorage.dto.UploadFileDto;
 import com.natk.natk_api.userStorage.service.UserFileService;
 import com.natk.natk_api.userStorage.service.UserFolderService;
 import com.natk.natk_api.userStorage.service.UserStorageService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -40,6 +44,7 @@ public class UserStorageController {
     private final UserFileService userFileService;
     private final UserFolderService userFolderService;
     private final UserStorageService userStorageService;
+    private final QuestionGenerationService questionGenerationService;
 
     @PostMapping("/folders")
     public FolderDto createFolder(@RequestBody CreateFolderDto dto) {
@@ -124,6 +129,12 @@ public class UserStorageController {
                         "attachment; filename=\"" + dto.translitName() + "\"; filename*=UTF-8''" + dto.encodedName())
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(dto.fileData());
+    }
+
+    @PostMapping("files/generate-questions")
+    public ResponseEntity<QuestionResponseDto> generateQuestions(@RequestBody @Valid QuestionRequestDto dto) throws IOException {
+        String result = questionGenerationService.generateQuestions(dto.fileIds(), dto.questionCounts());
+        return ResponseEntity.ok(new QuestionResponseDto(result));
     }
 
     @PostMapping("/files/{id}/copy")

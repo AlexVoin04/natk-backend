@@ -4,6 +4,8 @@ This repository contains a microservices architecture with:
 
 - **natk-api** — Main application API
 - **natk-auth** — Authentication and JWT handling service
+- **natk-pdf** — PDF conversion microservice
+- **natk-ai** — AI service integrating Gemini API
 - **PostgreSQL** — Database for persistence
 
 ---
@@ -29,8 +31,8 @@ docker-compose -f docker-compose.yml up --build
 
 This will:
 
-- Build Docker images for `natk-auth` and `natk-api`
-- Start the `natk-auth`, `natk-api`, and `db` containers
+- Build Docker images for `natk-auth`, `natk-api`, `natk-pdf`and `natk-ai`
+- Start the `natk-auth`, `natk-api`, `natk-pdf`, `natk-ai`, and `db` containers
 - Automatically create a shared network `natk-net`
 
 ---
@@ -45,7 +47,17 @@ docker build -t natk-auth:0.0.1 ./natk-auth
 
 🌐 Build natk-api image
 ```shell
-docker build -t natk-api:0.0.1 ./natk-api
+docker build -t natk-api:0.0.5 ./natk-api
+```
+
+📄 Build natk-pdf image
+```shell
+docker build -t natk-pdf:0.0.1 ./natk-pdf
+```
+
+🤖 Build natk-ai image
+```shell
+docker build -t natk-ai:0.0.1 ./natk-ai
 ```
 
 ▶️ Run the containers
@@ -57,11 +69,13 @@ docker-compose -f docker-compose.yml up
 
 ## 🔌 Default Ports
 
-| Service     | Host Port | Container Port |
-|-------------|-----------|----------------|
-| PostgreSQL  | 5432      | 5432           |
-| natk-auth   | 8001      | 8080           |
-| natk-api    | 8000      | 8080           |
+| Service    | Host Port | Container Port |
+|------------|-----------|----------------|
+| PostgreSQL | 5432      | 5432           |
+| natk-auth  | 8001      | 8080           |
+| natk-api   | 8000      | 8080           |
+| natk-ai    | 8002      | 8080           |
+| natk-pdf   | 8003      | 8080           |
 
 ---
 
@@ -72,6 +86,8 @@ Once started, you should see:
 - PostgreSQL initialized and ready
 - `natk-auth` running at http://localhost:8001
 - `natk-api` running at http://localhost:8000
+- `natk-ai` running at http://localhost:8002
+- `natk-pdf` running at http://localhost:8003
 
 You can now interact with the services via their respective endpoints.
 
