@@ -2,6 +2,7 @@ package com.natk.natk_api.userStorage;
 
 import com.natk.natk_api.llms.dto.QuestionRequestDto;
 import com.natk.natk_api.llms.dto.QuestionResponseDto;
+import com.natk.natk_api.llms.service.ProviderType;
 import com.natk.natk_api.llms.service.QuestionGenerationService;
 import com.natk.natk_api.userStorage.dto.CreateFolderDto;
 import com.natk.natk_api.userStorage.dto.DeletedItemDto;
@@ -132,8 +133,8 @@ public class UserStorageController {
     }
 
     @PostMapping("files/generate-questions")
-    public ResponseEntity<QuestionResponseDto> generateQuestions(@RequestBody @Valid QuestionRequestDto dto) throws IOException {
-        String result = questionGenerationService.generateQuestions(dto.fileIds(), dto.questionCounts());
+    public ResponseEntity<QuestionResponseDto> generateQuestions(@RequestBody @Valid QuestionRequestDto dto) {
+        String result = questionGenerationService.generateQuestions(dto.fileIds(), dto.questionCounts(), dto.provider());
         return ResponseEntity.ok(new QuestionResponseDto(result));
     }
 

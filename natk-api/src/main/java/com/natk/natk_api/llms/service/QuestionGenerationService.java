@@ -33,13 +33,17 @@ public class QuestionGenerationService {
     private final MimeTypeValidatorService mimeTypeValidatorService;
     private final RestClient restClient;
 
-    public String generateQuestions(List<UUID> fileIds, Map<QuestionType, Integer> questionCounts) {
+    public String generateQuestions(
+            List<UUID> fileIds,
+            Map<QuestionType, Integer> questionCounts,
+            ProviderType provider
+    ) {
         UserEntity user = currentUserService.getCurrentUser();
 
         List<UserFileEntity> userFiles = getUserFiles(fileIds, user);
 
         String questionText = buildPrompt(questionCounts);
-        MultiValueMap<String, HttpEntity<?>> multipartData = buildMultipartRequest(userFiles, questionText);
+        MultiValueMap<String, HttpEntity<?>> multipartData = buildMultipartRequest(userFiles, questionText, provider);
 
         return sendRequest(multipartData);
     }
@@ -70,9 +74,14 @@ public class QuestionGenerationService {
     /**
      * Формирует multipart тело с вопросом и файлами.
      */
-    private MultiValueMap<String, HttpEntity<?>> buildMultipartRequest(List<UserFileEntity> files, String questionText) {
+    private MultiValueMap<String, HttpEntity<?>> buildMultipartRequest(
+            List<UserFileEntity> files,
+            String questionText,
+            ProviderType provider
+    ) {
         MultipartBodyBuilder bodyBuilder = new MultipartBodyBuilder();
         bodyBuilder.part("question", questionText);
+        bodyBuilder.part("provider", provider.getValue());
 
         List<FailedFileInfo> failedFiles = new ArrayList<>();
 

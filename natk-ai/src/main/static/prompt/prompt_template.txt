@@ -9,7 +9,7 @@ Rules:
 - If you can't answer the question, write: "I can't help you with this."
 
 Instructions for formatting GIFT tests:
-1) Type of questions:
+1) The structure of the questions:
 ::Question Name::Question Text{
 Answer options
 }
