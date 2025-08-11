@@ -5,6 +5,7 @@ import com.natk.natk_api.userStorage.model.UserFolderEntity;
 import com.natk.natk_api.users.model.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -19,4 +20,5 @@ public interface UserFileRepository extends JpaRepository<UserFileEntity, UUID> 
     List<UserFileEntity> findByCreatedByAndIsDeletedTrueOrderByDeletedAtDesc(UserEntity createdBy);
     List<UserFileEntity> findByCreatedByAndFolderAndIsDeletedFalse(UserEntity user, UserFolderEntity folder);
     List<UserFileEntity> findByCreatedByAndFolderAndIsDeletedTrue(UserEntity user, UserFolderEntity folder);
+    List<UserFileEntity> findByIsDeletedTrueAndDeletedAtBefore(Instant cutoff);
 }

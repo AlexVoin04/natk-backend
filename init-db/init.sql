@@ -86,7 +86,7 @@ CREATE TABLE user_folders (
     deleted_at TIMESTAMP NULL,
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NULL,
-    FOREIGN KEY (parent_folder_id) REFERENCES user_folders(id) ON DELETE SET NULL,
+    FOREIGN KEY (parent_folder_id) REFERENCES user_folders(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
