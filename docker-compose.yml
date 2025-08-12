@@ -65,7 +65,7 @@ services:
       - natk-net
 
   natk-ai:
-    image: 'natk-ai:0.0.2'
+    image: 'natk-ai:0.0.3'
     build: ./natk-ai
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}

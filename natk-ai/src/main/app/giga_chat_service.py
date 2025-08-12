@@ -17,7 +17,8 @@ def get_giga_client(model: Optional[GigaModel] = None) -> GigaChat:
     return GigaChat(
         credentials=GIGA_CHAT_API_KEY,
         verify_ssl_certs=False,
-        model=model.value if model else None
+        model=model.value if model else None,
+        timeout=120
     )
 
 def get_auth_token() -> AccessToken:

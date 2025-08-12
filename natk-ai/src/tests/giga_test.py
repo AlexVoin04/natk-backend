@@ -13,8 +13,8 @@ class RealGigaIntegrationTest(unittest.IsolatedAsyncioTestCase):
 
         question = (
             "Сгенерируй тест из следующих вопросов: "
-            "CHOICE: 2, MULTIPLE_CHOICE: 2, SHORT_ANSWER: 2, "
-            "TRUE_FALSE: 2, COMPLIANCE: 2, ESSAY: 2"
+            "CHOICE: 5, MULTIPLE_CHOICE: 5, SHORT_ANSWER: 0, "
+            "TRUE_FALSE: 2, COMPLIANCE: 3, ESSAY: 0"
         )
 
         file_path = os.path.join("src", "tests", "resources", "test.pdf")
