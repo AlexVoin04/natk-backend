@@ -23,5 +23,12 @@ public class UserRoleEntity {
     @Id
     @Column(name = "role_id")
     private UUID roleId;
+
+    public UserRoleEntity() {}
+
+    public UserRoleEntity(UUID userId, UUID roleId) {
+        this.userId = userId;
+        this.roleId = roleId;
+    }
 }
 

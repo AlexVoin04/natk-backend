@@ -6,6 +6,7 @@ import com.natk.natk_api.department.dto.DepartmentDto;
 import com.natk.natk_api.department.dto.DepartmentUserDto;
 import com.natk.natk_api.department.dto.UpdateDepartmentDto;
 import com.natk.natk_api.department.service.DepartmentService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,7 +30,7 @@ public class DepartmentController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public DepartmentDto createDepartment(@RequestBody CreateDepartmentDto dto) {
+    public DepartmentDto createDepartment(@RequestBody @Valid CreateDepartmentDto dto) {
         return departmentService.createDepartment(dto);
     }
 
@@ -59,7 +60,7 @@ public class DepartmentController {
 
     @PostMapping("/users")
     @PreAuthorize("hasRole('ADMIN') or @departmentSecurity.isChief(authentication, #dto.departmentId())")
-    public DepartmentUserDto addUser(@RequestBody AddDepartmentUserDto dto) {
+    public DepartmentUserDto addUser(@RequestBody @Valid AddDepartmentUserDto dto) {
         return departmentService.addUserToDepartment(dto);
     }
 

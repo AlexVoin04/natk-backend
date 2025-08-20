@@ -35,22 +35,21 @@ public class DepartmentService {
 
     @Transactional
     public DepartmentDto createDepartment(CreateDepartmentDto dto) {
-        DepartmentEntity entity = new DepartmentEntity();
-        entity.setId(UUID.randomUUID());
-        entity.setName(dto.name());
-        entity.setChiefId(dto.chiefId());
+        UserEntity chiefEntity = userRepository.findById(dto.chiefId())
+                .orElseThrow(() -> new IllegalArgumentException("Chief not found"));
+
+        DepartmentEntity entity = DepartmentEntity.builder()
+                .id(UUID.randomUUID())
+                .name(dto.name())
+                .chief(chiefEntity)
+                .build();
+
         departmentRepository.save(entity);
 
         syncChiefRole(dto.chiefId());
 
-        UserInDepartmentDto chief = null;
-        if (dto.chiefId() != null) {
-            UserEntity chiefEntity = userRepository.findById(dto.chiefId())
-                    .orElseThrow(() -> new IllegalArgumentException("Chief not found"));
-            chief = UserInDepartmentMapper.toUserInDepartmentDto(chiefEntity);
-        }
-
-        return new DepartmentDto(entity.getId(), entity.getName(), chief);
+        return new DepartmentDto(entity.getId(), entity.getName(),
+                UserInDepartmentMapper.toUserInDepartmentDto(chiefEntity));
     }
 
     @Transactional
@@ -58,25 +57,36 @@ public class DepartmentService {
         DepartmentEntity entity = departmentRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Department not found"));
 
-        UUID oldChiefId = entity.getChiefId();
-        entity.setName(dto.name());
-        entity.setChiefId(dto.chiefId());
+        boolean updated = false;
+
+        if (dto.name() != null && !dto.name().equals(entity.getName())) {
+            entity.setName(dto.name());
+            updated = true;
+        }
+
+        if (dto.chiefId() != null) {
+            UserEntity newChief = userRepository.findById(dto.chiefId())
+                    .orElseThrow(() -> new IllegalArgumentException("Chief not found"));
+
+            UUID oldChiefId = entity.getChief() != null ? entity.getChief().getId() : null;
+
+            if (oldChiefId == null || !oldChiefId.equals(newChief.getId())) {
+                entity.setChief(newChief);
+                updated = true;
+
+                if (oldChiefId != null) removeChiefRoleIfNoOtherDepartments(oldChiefId);
+                syncChiefRole(newChief.getId());
+            }
+        }
+
+        if (!updated) {
+            throw new IllegalArgumentException("No changes detected for update");
+        }
+
         departmentRepository.save(entity);
 
-        if (oldChiefId != null && !oldChiefId.equals(dto.chiefId())) {
-            removeChiefRoleIfNoOtherDepartments(oldChiefId);
-        }
-
-        syncChiefRole(dto.chiefId());
-
-        UserInDepartmentDto chief = null;
-        if (dto.chiefId() != null) {
-            UserEntity chiefEntity = userRepository.findById(dto.chiefId())
-                    .orElseThrow(() -> new IllegalArgumentException("Chief not found"));
-            chief = UserInDepartmentMapper.toUserInDepartmentDto(chiefEntity);
-        }
-
-        return new DepartmentDto(entity.getId(), entity.getName(), chief);
+        return new DepartmentDto(entity.getId(), entity.getName(),
+                UserInDepartmentMapper.toUserInDepartmentDto(entity.getChief()));
     }
 
     @Transactional
@@ -84,7 +94,7 @@ public class DepartmentService {
         DepartmentEntity entity = departmentRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Department not found"));
 
-        UUID chiefId = entity.getChiefId();
+        UUID chiefId = entity.getChief().getId();
 
         departmentRepository.deleteById(id);
 
@@ -115,15 +125,16 @@ public class DepartmentService {
         DepartmentEntity department = departmentRepository.findById(dto.departmentId())
                 .orElseThrow(() -> new IllegalArgumentException("Department not found"));
 
-        DepartmentUserEntity entity = new DepartmentUserEntity();
-        entity.setId(UUID.randomUUID());
-        entity.setUser(user);
-        entity.setDepartment(department);
+        DepartmentUserEntity entity = DepartmentUserEntity.builder()
+                .id(UUID.randomUUID())
+                .user(user)
+                .department(department)
+                .build();
         departmentUserRepository.save(entity);
 
-        UserInDepartmentDto userDto = UserInDepartmentMapper.toUserInDepartmentDto(user);
-
-        return new DepartmentUserDto(entity.getId(), userDto, department.getId());
+        return new DepartmentUserDto(entity.getId(),
+                UserInDepartmentMapper.toUserInDepartmentDto(user),
+                department.getId());
     }
 
     public void removeUserFromDepartment(UUID id) {
@@ -140,10 +151,7 @@ public class DepartmentService {
                 .anyMatch(r -> r.getRoleId().equals(role.getId()));
 
         if (!hasRole) {
-            UserRoleEntity ur = new UserRoleEntity();
-            ur.setUserId(chiefId);
-            ur.setRoleId(role.getId());
-            userRoleRepository.save(ur);
+            userRoleRepository.save(new UserRoleEntity(chiefId, role.getId()));
         }
     }
 
