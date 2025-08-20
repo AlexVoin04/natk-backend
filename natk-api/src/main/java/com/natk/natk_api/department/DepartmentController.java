@@ -1,10 +1,12 @@
 package com.natk.natk_api.department;
 
 import com.natk.natk_api.department.dto.AddDepartmentUserDto;
+import com.natk.natk_api.department.dto.AddDepartmentUsersDto;
 import com.natk.natk_api.department.dto.CreateDepartmentDto;
 import com.natk.natk_api.department.dto.DepartmentDto;
 import com.natk.natk_api.department.dto.DepartmentUserDto;
 import com.natk.natk_api.department.dto.UpdateDepartmentDto;
+import com.natk.natk_api.department.dto.UserInDepartmentDto;
 import com.natk.natk_api.department.service.DepartmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -52,6 +54,13 @@ public class DepartmentController {
         return departmentService.listDepartments();
     }
 
+    //TODO: фильтрация
+    @GetMapping("/{id}/users/not-in")
+    @PreAuthorize("hasRole('ADMIN') or @departmentSecurity.isChief(authentication, #id)")
+    public List<UserInDepartmentDto> listUsersNotInDepartment(@PathVariable UUID id) {
+        return departmentService.listUsersNotInDepartment(id);
+    }
+
     @GetMapping("/{id}/users")
     @PreAuthorize("hasRole('ADMIN') or @departmentSecurity.isChief(authentication, #id)")
     public List<DepartmentUserDto> listDepartmentUsers(@PathVariable UUID id) {
@@ -62,6 +71,12 @@ public class DepartmentController {
     @PreAuthorize("hasRole('ADMIN') or @departmentSecurity.isChief(authentication, #dto.departmentId())")
     public DepartmentUserDto addUser(@RequestBody @Valid AddDepartmentUserDto dto) {
         return departmentService.addUserToDepartment(dto);
+    }
+
+    @PostMapping("/users/bulk")
+    @PreAuthorize("hasRole('ADMIN') or @departmentSecurity.isChief(authentication, #dto.departmentId())")
+    public List<DepartmentUserDto> addUsers(@RequestBody @Valid AddDepartmentUsersDto dto) {
+        return departmentService.addUsersToDepartment(dto);
     }
 
     @DeleteMapping("/users/{id}")

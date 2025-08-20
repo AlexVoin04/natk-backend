@@ -23,5 +23,5 @@ public interface DepartmentUserRepository extends JpaRepository<DepartmentUserEn
         where d.id = :departmentId
     """)
     List<DepartmentUserDto> findAllByDepartmentId(UUID departmentId);
-    List<DepartmentUserEntity> findByDepartmentId(UUID departmentId);
+    boolean existsByUserIdAndDepartmentId(UUID userId, UUID departmentId);
 }

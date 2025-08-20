@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface UserRepository extends JpaRepository<UserEntity, UUID> {
@@ -22,5 +23,16 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
                                    @Param("name") String name,
                                    @Param("surname") String surname,
                                    Pageable pageable);
+
+    @Query("""
+        SELECT u 
+        FROM UserEntity u 
+        WHERE u.id NOT IN (
+            SELECT du.user.id 
+            FROM DepartmentUserEntity du 
+            WHERE du.department.id = :departmentId
+        )
+    """)
+    List<UserEntity> findUsersNotInDepartment(UUID departmentId);
 }
 

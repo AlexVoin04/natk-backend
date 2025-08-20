@@ -2,6 +2,7 @@ package com.natk.natk_api.department.service;
 
 import com.natk.natk_api.department.UserInDepartmentMapper;
 import com.natk.natk_api.department.dto.AddDepartmentUserDto;
+import com.natk.natk_api.department.dto.AddDepartmentUsersDto;
 import com.natk.natk_api.department.dto.CreateDepartmentDto;
 import com.natk.natk_api.department.dto.DepartmentDto;
 import com.natk.natk_api.department.dto.DepartmentUserDto;
@@ -21,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -59,25 +61,8 @@ public class DepartmentService {
 
         boolean updated = false;
 
-        if (dto.name() != null && !dto.name().equals(entity.getName())) {
-            entity.setName(dto.name());
-            updated = true;
-        }
-
-        if (dto.chiefId() != null) {
-            UserEntity newChief = userRepository.findById(dto.chiefId())
-                    .orElseThrow(() -> new IllegalArgumentException("Chief not found"));
-
-            UUID oldChiefId = entity.getChief() != null ? entity.getChief().getId() : null;
-
-            if (oldChiefId == null || !oldChiefId.equals(newChief.getId())) {
-                entity.setChief(newChief);
-                updated = true;
-
-                if (oldChiefId != null) removeChiefRoleIfNoOtherDepartments(oldChiefId);
-                syncChiefRole(newChief.getId());
-            }
-        }
+        updated |= updateNameIfChanged(entity, dto.name());
+        updated |= updateChiefIfChanged(entity, dto.chiefId());
 
         if (!updated) {
             throw new IllegalArgumentException("No changes detected for update");
@@ -87,6 +72,35 @@ public class DepartmentService {
 
         return new DepartmentDto(entity.getId(), entity.getName(),
                 UserInDepartmentMapper.toUserInDepartmentDto(entity.getChief()));
+    }
+
+    private boolean updateNameIfChanged(DepartmentEntity entity, String newName) {
+        if (newName != null && !newName.equals(entity.getName())) {
+            entity.setName(newName);
+            return true;
+        }
+        return false;
+    }
+
+    private boolean updateChiefIfChanged(DepartmentEntity entity, UUID newChiefId) {
+        if (newChiefId == null) return false;
+
+        UserEntity newChief = userRepository.findById(newChiefId)
+                .orElseThrow(() -> new IllegalArgumentException("Chief not found"));
+
+        UUID oldChiefId = entity.getChief() != null ? entity.getChief().getId() : null;
+
+        if (oldChiefId == null || !oldChiefId.equals(newChiefId)) {
+            entity.setChief(newChief);
+
+            if (oldChiefId != null) {
+                removeChiefRoleIfNoOtherDepartments(oldChiefId);
+            }
+            syncChiefRole(newChiefId);
+
+            return true;
+        }
+        return false;
     }
 
     @Transactional
@@ -111,6 +125,13 @@ public class DepartmentService {
         return departmentUserRepository.findAllByDepartmentId(departmentId);
     }
 
+    public List<UserInDepartmentDto> listUsersNotInDepartment(UUID departmentId) {
+        List<UserEntity> users = userRepository.findUsersNotInDepartment(departmentId);
+        return users.stream()
+                .map(UserInDepartmentMapper::toUserInDepartmentDto)
+                .toList();
+    }
+
     public UUID getDepartmentIdByDepartmentUserId(UUID departmentUserId) {
         DepartmentUserEntity du = departmentUserRepository.findById(departmentUserId)
                 .orElseThrow(() -> new IllegalArgumentException("Department user not found"));
@@ -125,16 +146,51 @@ public class DepartmentService {
         DepartmentEntity department = departmentRepository.findById(dto.departmentId())
                 .orElseThrow(() -> new IllegalArgumentException("Department not found"));
 
+        return addUserToDepartmentInternal(user, department, false);
+    }
+
+    @Transactional
+    public List<DepartmentUserDto> addUsersToDepartment(AddDepartmentUsersDto dto) {
+        DepartmentEntity department = departmentRepository.findById(dto.departmentId())
+                .orElseThrow(() -> new IllegalArgumentException("Department not found"));
+
+        List<DepartmentUserDto> result = new ArrayList<>();
+
+        for (UUID userId : dto.userIds()) {
+            UserEntity user = userRepository.findById(userId)
+                    .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+            DepartmentUserDto added = addUserToDepartmentInternal(user, department, true);
+            if (added != null) {
+                result.add(added);
+            }
+        }
+
+        return result;
+    }
+
+    private DepartmentUserDto addUserToDepartmentInternal(UserEntity user, DepartmentEntity department, boolean ignoreIfExists) {
+        boolean exists = departmentUserRepository.existsByUserIdAndDepartmentId(user.getId(), department.getId());
+        if (exists) {
+            if (ignoreIfExists) {
+                return null;
+            } else {
+                throw new IllegalArgumentException("User " + user.getId() + " is already in department " + department.getId());
+            }
+        }
+
         DepartmentUserEntity entity = DepartmentUserEntity.builder()
                 .id(UUID.randomUUID())
                 .user(user)
                 .department(department)
                 .build();
+
         departmentUserRepository.save(entity);
 
-        return new DepartmentUserDto(entity.getId(),
+        return new DepartmentUserDto(
+                entity.getId(),
                 UserInDepartmentMapper.toUserInDepartmentDto(user),
-                department.getId());
+                department.getId()
+        );
     }
 
     public void removeUserFromDepartment(UUID id) {
