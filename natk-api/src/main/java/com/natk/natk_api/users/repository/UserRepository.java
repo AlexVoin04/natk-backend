@@ -10,11 +10,6 @@ import org.springframework.data.repository.query.Param;
 import java.util.UUID;
 
 public interface UserRepository extends JpaRepository<UserEntity, UUID> {
-
-//    @Query("SELECT DISTINCT u FROM UserEntity u JOIN u.roles r " +
-//            "WHERE (:role IS NULL OR :role = '' OR r.name = :role) " +
-//            "AND (:name IS NULL OR :name = '' OR LOWER(u.name) LIKE LOWER(CONCAT('%', :name, '%'))) " +
-//            "AND (:surname IS NULL OR :surname = '' OR LOWER(u.surname) LIKE LOWER(CONCAT('%', :surname, '%')))")
     @Query(value = "SELECT DISTINCT u FROM UserEntity u JOIN u.roles r " +
             "WHERE (:role IS NULL OR :role = '' OR r.name = :role) " +
             "AND (:name IS NULL OR :name = '' OR LOWER(u.name) LIKE LOWER(CONCAT('%', :name, '%'))) " +

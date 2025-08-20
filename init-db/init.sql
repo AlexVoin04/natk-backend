@@ -30,7 +30,7 @@ CREATE TABLE user_roles (
 CREATE TABLE department (
     id UUID PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    chief_id UUID,
+    chief_id UUID NOT NULL,
     FOREIGN KEY (chief_id) REFERENCES users(id)
 );
 
