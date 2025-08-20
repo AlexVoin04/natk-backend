@@ -9,3 +9,7 @@ class GeminiFileUploadError(GeminiAPIError):
 class GeminiGenerationError(GeminiAPIError):
     """Ошибка при генерации ответа."""
     pass
+
+class GigaChatServiceError(Exception):
+    """Базовое исключение для ошибок работы с GigaChat."""
+    pass
