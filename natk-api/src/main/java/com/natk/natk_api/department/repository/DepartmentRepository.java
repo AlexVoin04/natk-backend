@@ -18,8 +18,9 @@ public interface DepartmentRepository extends JpaRepository<DepartmentEntity, UU
             )
         )
         from DepartmentEntity d
-        left join UserEntity u on d.chiefId = u.id
+        left join d.chief u
     """)
     List<DepartmentDto> findAllWithChief();
     boolean existsByChiefId(UUID chiefId);
+    boolean existsByIdAndChiefId(UUID departmentId, UUID chiefId);
 }

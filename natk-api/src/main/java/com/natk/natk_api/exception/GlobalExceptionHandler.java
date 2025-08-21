@@ -1,10 +1,12 @@
 package com.natk.natk_api.exception;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.natk.natk_api.llms.FileConversionException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.security.access.AccessDeniedException;
@@ -20,6 +22,15 @@ public class GlobalExceptionHandler {
         String error = resolveErrorMessage(status);
 
         return buildErrorResponse(ex.getMessage(), error, status, request);
+    }
+
+    @ExceptionHandler({ HttpMessageNotReadableException.class, JsonProcessingException.class })
+    public ResponseEntity<ErrorResponse> handleJsonParseError(HttpMessageNotReadableException ex,
+                                                              HttpServletRequest request) {
+        return buildErrorResponse("Invalid request body: " + ex.getMostSpecificCause().getMessage(),
+                "Bad Request",
+                HttpServletResponse.SC_BAD_REQUEST,
+                request);
     }
 
     @ExceptionHandler(AccessDeniedException.class)

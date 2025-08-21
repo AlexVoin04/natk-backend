@@ -23,8 +23,6 @@ public class DepartmentSecurity {
         }
 
         UUID userId = details.getId();
-        return departmentRepository.findById(departmentId)
-                .map(dept -> dept.getChiefId() != null && dept.getChiefId().equals(userId))
-                .orElse(false);
+        return departmentRepository.existsByIdAndChiefId(departmentId, userId);
     }
 }

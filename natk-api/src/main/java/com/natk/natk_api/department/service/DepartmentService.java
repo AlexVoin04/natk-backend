@@ -75,9 +75,14 @@ public class DepartmentService {
     }
 
     private boolean updateNameIfChanged(DepartmentEntity entity, String newName) {
-        if (newName != null && !newName.equals(entity.getName())) {
-            entity.setName(newName);
-            return true;
+        if (newName != null) {
+            if (newName.isBlank()) {
+                throw new IllegalArgumentException("The department name cannot be empty");
+            }
+            if (!newName.equals(entity.getName())) {
+                entity.setName(newName);
+                return true;
+            }
         }
         return false;
     }
