@@ -7,14 +7,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface UserRepository extends JpaRepository<UserEntity, UUID> {
-
-//    @Query("SELECT DISTINCT u FROM UserEntity u JOIN u.roles r " +
-//            "WHERE (:role IS NULL OR :role = '' OR r.name = :role) " +
-//            "AND (:name IS NULL OR :name = '' OR LOWER(u.name) LIKE LOWER(CONCAT('%', :name, '%'))) " +
-//            "AND (:surname IS NULL OR :surname = '' OR LOWER(u.surname) LIKE LOWER(CONCAT('%', :surname, '%')))")
     @Query(value = "SELECT DISTINCT u FROM UserEntity u JOIN u.roles r " +
             "WHERE (:role IS NULL OR :role = '' OR r.name = :role) " +
             "AND (:name IS NULL OR :name = '' OR LOWER(u.name) LIKE LOWER(CONCAT('%', :name, '%'))) " +
@@ -27,5 +23,16 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
                                    @Param("name") String name,
                                    @Param("surname") String surname,
                                    Pageable pageable);
+
+    @Query("""
+        SELECT u 
+        FROM UserEntity u 
+        WHERE u.id NOT IN (
+            SELECT du.user.id 
+            FROM DepartmentUserEntity du 
+            WHERE du.department.id = :departmentId
+        )
+    """)
+    List<UserEntity> findUsersNotInDepartment(UUID departmentId);
 }
 

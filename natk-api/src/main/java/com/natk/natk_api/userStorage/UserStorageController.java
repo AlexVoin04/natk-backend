@@ -2,7 +2,6 @@ package com.natk.natk_api.userStorage;
 
 import com.natk.natk_api.llms.dto.QuestionRequestDto;
 import com.natk.natk_api.llms.dto.QuestionResponseDto;
-import com.natk.natk_api.llms.service.ProviderType;
 import com.natk.natk_api.llms.service.QuestionGenerationService;
 import com.natk.natk_api.userStorage.dto.CreateFolderDto;
 import com.natk.natk_api.userStorage.dto.DeletedItemDto;
