@@ -1,10 +1,10 @@
 package com.natk.natk_api.department;
 
-import com.natk.natk_api.department.dto.AddDepartmentUserDto;
 import com.natk.natk_api.department.dto.AddDepartmentUsersDto;
 import com.natk.natk_api.department.dto.CreateDepartmentDto;
 import com.natk.natk_api.department.dto.DepartmentDto;
 import com.natk.natk_api.department.dto.DepartmentUserDto;
+import com.natk.natk_api.department.dto.RemoveDepartmentUsersDto;
 import com.natk.natk_api.department.dto.UpdateDepartmentDto;
 import com.natk.natk_api.department.dto.UserInDepartmentDto;
 import com.natk.natk_api.department.service.DepartmentService;
@@ -36,16 +36,16 @@ public class DepartmentController {
         return departmentService.createDepartment(dto);
     }
 
-    @PutMapping("/{id}")
+    @PutMapping("/{departmentId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public DepartmentDto updateDepartment(@PathVariable UUID id, @RequestBody UpdateDepartmentDto dto) {
-        return departmentService.updateDepartment(id, dto);
+    public DepartmentDto updateDepartment(@PathVariable UUID departmentId, @RequestBody UpdateDepartmentDto dto) {
+        return departmentService.updateDepartment(departmentId, dto);
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{departmentId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> deleteDepartment(@PathVariable UUID id) {
-        departmentService.deleteDepartment(id);
+    public ResponseEntity<?> deleteDepartment(@PathVariable UUID departmentId) {
+        departmentService.deleteDepartment(departmentId);
         return ResponseEntity.ok().build();
     }
 
@@ -55,34 +55,48 @@ public class DepartmentController {
     }
 
     //TODO: фильтрация
-    @GetMapping("/{id}/users/not-in")
+    @GetMapping("/{departmentId}/users/not-in")
+    @PreAuthorize("hasRole('ADMIN') or @departmentSecurity.isChief(authentication, #departmentId)")
+    public List<UserInDepartmentDto> listUsersNotInDepartment(@PathVariable UUID departmentId) {
+        return departmentService.listUsersNotInDepartment(departmentId);
+    }
+
+    @GetMapping("/{departmentId}/users")
+    @PreAuthorize("hasRole('ADMIN') or @departmentSecurity.isChief(authentication, #departmentId)")
+    public List<DepartmentUserDto> listDepartmentUsers(@PathVariable UUID departmentId) {
+        return departmentService.listDepartmentUsers(departmentId);
+    }
+
+    @PostMapping("/{departmentId}/users/{userId}")
+    @PreAuthorize("hasRole('ADMIN') or @departmentSecurity.isChief(authentication, #departmentId)")
+    public DepartmentUserDto addUser(
+            @PathVariable UUID departmentId,
+            @PathVariable UUID userId
+    ) {
+        return departmentService.addUserToDepartment(departmentId, userId);
+    }
+
+    @PostMapping("/{departmentId}/users/bulk")
     @PreAuthorize("hasRole('ADMIN') or @departmentSecurity.isChief(authentication, #id)")
-    public List<UserInDepartmentDto> listUsersNotInDepartment(@PathVariable UUID id) {
-        return departmentService.listUsersNotInDepartment(id);
+    public List<DepartmentUserDto> addUsers(@PathVariable UUID departmentId, @RequestBody @Valid AddDepartmentUsersDto dto) {
+        return departmentService.addUsersToDepartment(departmentId, dto);
     }
 
-    @GetMapping("/{id}/users")
-    @PreAuthorize("hasRole('ADMIN') or @departmentSecurity.isChief(authentication, #id)")
-    public List<DepartmentUserDto> listDepartmentUsers(@PathVariable UUID id) {
-        return departmentService.listDepartmentUsers(id);
+    @DeleteMapping("/{departmentId}/users/{userId}")
+    @PreAuthorize("hasRole('ADMIN') or @departmentSecurity.isChief(authentication, #departmentId)")
+    public ResponseEntity<?> removeUser(@PathVariable UUID departmentId, @PathVariable UUID userId
+    ) {
+        departmentService.removeUserFromDepartment(departmentId, userId);
+        return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/users")
-    @PreAuthorize("hasRole('ADMIN') or @departmentSecurity.isChief(authentication, #dto.departmentId())")
-    public DepartmentUserDto addUser(@RequestBody @Valid AddDepartmentUserDto dto) {
-        return departmentService.addUserToDepartment(dto);
-    }
-
-    @PostMapping("/users/bulk")
-    @PreAuthorize("hasRole('ADMIN') or @departmentSecurity.isChief(authentication, #dto.departmentId())")
-    public List<DepartmentUserDto> addUsers(@RequestBody @Valid AddDepartmentUsersDto dto) {
-        return departmentService.addUsersToDepartment(dto);
-    }
-
-    @DeleteMapping("/users/{id}")
-    @PreAuthorize("hasRole('ADMIN') or @departmentSecurity.isChief(authentication, @departmentService.getDepartmentIdByDepartmentUserId(#id))")
-    public ResponseEntity<?> removeUser(@PathVariable UUID id) {
-        departmentService.removeUserFromDepartment(id);
+    @DeleteMapping("/{departmentId}/users")
+    @PreAuthorize("hasRole('ADMIN') or @departmentSecurity.isChief(authentication, #departmentId)")
+    public ResponseEntity<?> removeUsers(
+            @PathVariable UUID departmentId,
+            @RequestBody @Valid RemoveDepartmentUsersDto dto
+    ) {
+        departmentService.removeUsersFromDepartment(departmentId, dto);
         return ResponseEntity.ok().build();
     }
 }

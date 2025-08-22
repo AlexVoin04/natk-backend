@@ -1,11 +1,11 @@
 package com.natk.natk_api.department.service;
 
 import com.natk.natk_api.department.UserInDepartmentMapper;
-import com.natk.natk_api.department.dto.AddDepartmentUserDto;
 import com.natk.natk_api.department.dto.AddDepartmentUsersDto;
 import com.natk.natk_api.department.dto.CreateDepartmentDto;
 import com.natk.natk_api.department.dto.DepartmentDto;
 import com.natk.natk_api.department.dto.DepartmentUserDto;
+import com.natk.natk_api.department.dto.RemoveDepartmentUsersDto;
 import com.natk.natk_api.department.dto.UpdateDepartmentDto;
 import com.natk.natk_api.department.dto.UserInDepartmentDto;
 import com.natk.natk_api.department.model.DepartmentEntity;
@@ -127,14 +127,22 @@ public class DepartmentService {
     }
 
     public List<DepartmentUserDto> listDepartmentUsers(UUID departmentId) {
+        ensureDepartmentExists(departmentId);
         return departmentUserRepository.findAllByDepartmentId(departmentId);
     }
 
     public List<UserInDepartmentDto> listUsersNotInDepartment(UUID departmentId) {
+        ensureDepartmentExists(departmentId);
         List<UserEntity> users = userRepository.findUsersNotInDepartment(departmentId);
         return users.stream()
                 .map(UserInDepartmentMapper::toUserInDepartmentDto)
                 .toList();
+    }
+
+    private void ensureDepartmentExists(UUID departmentId) {
+        if (!departmentRepository.existsById(departmentId)) {
+            throw new IllegalArgumentException("Department not found");
+        }
     }
 
     public UUID getDepartmentIdByDepartmentUserId(UUID departmentUserId) {
@@ -144,19 +152,19 @@ public class DepartmentService {
     }
 
     @Transactional
-    public DepartmentUserDto addUserToDepartment(AddDepartmentUserDto dto) {
-        UserEntity user = userRepository.findById(dto.userId())
+    public DepartmentUserDto addUserToDepartment(UUID departmentId, UUID userId) {
+        UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        DepartmentEntity department = departmentRepository.findById(dto.departmentId())
+        DepartmentEntity department = departmentRepository.findById(departmentId)
                 .orElseThrow(() -> new IllegalArgumentException("Department not found"));
 
         return addUserToDepartmentInternal(user, department, false);
     }
 
     @Transactional
-    public List<DepartmentUserDto> addUsersToDepartment(AddDepartmentUsersDto dto) {
-        DepartmentEntity department = departmentRepository.findById(dto.departmentId())
+    public List<DepartmentUserDto> addUsersToDepartment(UUID departmentId, AddDepartmentUsersDto dto) {
+        DepartmentEntity department = departmentRepository.findById(departmentId)
                 .orElseThrow(() -> new IllegalArgumentException("Department not found"));
 
         List<DepartmentUserDto> result = new ArrayList<>();
@@ -198,8 +206,27 @@ public class DepartmentService {
         );
     }
 
-    public void removeUserFromDepartment(UUID id) {
-        departmentUserRepository.deleteById(id);
+    @Transactional
+    public void removeUserFromDepartment(UUID departmentId, UUID userId) {
+        ensureDepartmentExists(departmentId);
+        DepartmentUserEntity entity = departmentUserRepository
+                .findByUserIdAndDepartmentId(userId, departmentId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found in this department"));
+
+        departmentUserRepository.delete(entity);
+    }
+
+    @Transactional
+    public void removeUsersFromDepartment(UUID departmentId, RemoveDepartmentUsersDto dto) {
+        ensureDepartmentExists(departmentId);
+        for (UUID userId : dto.userIds()) {
+            DepartmentUserEntity entity = departmentUserRepository
+                    .findByUserIdAndDepartmentId(userId, departmentId)
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "User " + userId + " not found in department " + departmentId));
+
+            departmentUserRepository.delete(entity);
+        }
     }
 
     private void syncChiefRole(UUID chiefId) {
