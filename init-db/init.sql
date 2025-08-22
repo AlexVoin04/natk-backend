@@ -48,10 +48,16 @@ CREATE TABLE department_folders (
     id UUID PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     parent_folder_id UUID,
+    user_id UUID NOT NULL,
     department_id UUID NOT NULL,
     is_public BOOLEAN DEFAULT FALSE,
-    FOREIGN KEY (parent_folder_id) REFERENCES department_folders(id) ON DELETE SET NULL,
+    is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+    deleted_at TIMESTAMP NULL,
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NULL,
+    FOREIGN KEY (parent_folder_id) REFERENCES department_folders(id) ON DELETE CASCADE,
     FOREIGN KEY (department_id) REFERENCES department(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
 -- === Department Files ===
@@ -63,6 +69,8 @@ CREATE TABLE department_files (
     created_at TIMESTAMP,
     file_data BYTEA,
     file_type VARCHAR(100),
+    is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+    deleted_at TIMESTAMP NULL,
     FOREIGN KEY (folder_id) REFERENCES department_folders(id) ON DELETE CASCADE,
     FOREIGN KEY (created_by) REFERENCES users(id)
 );
