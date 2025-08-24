@@ -26,13 +26,13 @@ import java.util.stream.Collectors;
 public class UserBaseFolderService extends BaseFolderService<UserFolderEntity, UserFolderRepository, FolderDto> {
     private final CurrentUserService currentUserService;
     private final UserFolderMapper userFolderMapper;
-    private final FolderNameResolverService folderNameResolverService;
+    private final UserFolderNameResolverService folderNameResolverService;
 
     protected UserBaseFolderService(
             UserFolderRepository folderRepo,
             CurrentUserService currentUserService,
             UserFolderMapper userFolderMapper,
-            FolderNameResolverService folderNameResolverService) {
+            UserFolderNameResolverService folderNameResolverService) {
         super(folderRepo);
         this.currentUserService = currentUserService;
         this.folderNameResolverService = folderNameResolverService;

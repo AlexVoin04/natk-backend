@@ -86,7 +86,7 @@ class UserFolderServiceTest {
 
     @Test
     void updateFolder_success() {
-        UpdateFolderDto dto = new UpdateFolderDto("new", null);
+        UpdateFolderDto dto = new UpdateFolderDto("new", null, false);
         UserFolderEntity folder = new UserFolderEntity();
         folder.setId(folderId);
         folder.setUser(user);
