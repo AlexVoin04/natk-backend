@@ -33,6 +33,7 @@ public class UserFileService {
     private final FileNameResolverService fileNameResolverService;
     private final MimeTypeValidatorService mimeTypeValidatorService;
 
+    //TODO: сделать копирование папки (со всем содержимым, мб рекурсия)
 
     @Transactional
     public FileInfoDto uploadFile(UploadFileDto dto) {

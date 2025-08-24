@@ -13,6 +13,7 @@ import com.natk.natk_api.userStorage.dto.FolderTreeDto;
 import com.natk.natk_api.userStorage.dto.UpdateFileDto;
 import com.natk.natk_api.userStorage.dto.UpdateFolderDto;
 import com.natk.natk_api.userStorage.dto.UploadFileDto;
+import com.natk.natk_api.userStorage.service.UserBaseFolderService;
 import com.natk.natk_api.userStorage.service.UserFileService;
 import com.natk.natk_api.userStorage.service.UserFolderService;
 import com.natk.natk_api.userStorage.service.UserStorageService;
@@ -42,7 +43,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class UserStorageController {
     private final UserFileService userFileService;
-    private final UserFolderService userFolderService;
+    private final UserBaseFolderService userFolderService;
     private final UserStorageService userStorageService;
     private final QuestionGenerationService questionGenerationService;
 
