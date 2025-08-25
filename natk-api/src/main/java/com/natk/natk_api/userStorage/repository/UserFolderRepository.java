@@ -20,4 +20,6 @@ public interface UserFolderRepository extends JpaRepository<UserFolderEntity, UU
     boolean existsByUserAndParentFolderAndNameAndIsDeletedFalse(UserEntity user, UserFolderEntity parentFolder, String name);
     boolean existsByUserAndParentFolderIsNullAndNameAndIsDeletedFalse(UserEntity user, String name);
     List<UserFolderEntity> findByIsDeletedTrueAndDeletedAtBefore(Instant cutoff);
+
+    List<UserFolderEntity> findByUserAndParentFolderIsNullAndIsDeletedFalse(UserEntity user);
 }

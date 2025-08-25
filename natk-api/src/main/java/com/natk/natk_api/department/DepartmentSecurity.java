@@ -2,7 +2,6 @@ package com.natk.natk_api.department;
 
 import com.natk.natk_api.auth.CustomUserDetails;
 import com.natk.natk_api.department.repository.DepartmentRepository;
-import com.natk.natk_api.departmentStorage.context.DepartmentContextHolder;
 import com.natk.natk_api.departmentStorage.repository.DepartmentFolderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -29,21 +28,21 @@ public class DepartmentSecurity {
         return departmentRepository.existsByIdAndChiefId(departmentId, userId);
     }
 
-    public boolean hasAccess(Authentication authentication) {
-        if (authentication == null || !(authentication.getPrincipal() instanceof CustomUserDetails details)) {
-            return false;
-        }
-
-        UUID userId = details.getId();
-        UUID departmentId = DepartmentContextHolder.get();
-        if (departmentId == null) return false;
-
-        // ADMIN всегда имеет доступ
-        boolean isAdmin = details.getAuthorities().stream()
-                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
-        if (isAdmin) return true;
-
-        // проверка, что пользователь является начальником департамента
-        return departmentRepository.existsByIdAndChiefId(departmentId, userId);
-    }
+//    public boolean hasAccess(Authentication authentication) {
+//        if (authentication == null || !(authentication.getPrincipal() instanceof CustomUserDetails details)) {
+//            return false;
+//        }
+//
+//        UUID userId = details.getId();
+//        UUID departmentId = DepartmentContextHolder.get();
+//        if (departmentId == null) return false;
+//
+//        // ADMIN всегда имеет доступ
+//        boolean isAdmin = details.getAuthorities().stream()
+//                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
+//        if (isAdmin) return true;
+//
+//        // проверка, что пользователь является начальником департамента
+//        return departmentRepository.existsByIdAndChiefId(departmentId, userId);
+//    }
 }

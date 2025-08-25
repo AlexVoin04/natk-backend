@@ -28,41 +28,43 @@ public class DepartmentStorageController {
     private final DepartmentBaseFolderService folderService;
 
     @PostMapping("/folders")
-    @PreAuthorize("hasRole('ADMIN') or @departmentSecurity.isChief(authentication, #departmentId)")
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'ACCESS')")
     public DepartmentFolderDto createFolder(@PathVariable UUID departmentId, @RequestBody CreateFolderDto dto) {
-        return folderService.createFolder(dto);
+        return folderService.createFolder(departmentId, dto);
     }
 
     @PutMapping("/folders/{id}")
-    @PreAuthorize("hasRole('ADMIN') or @departmentSecurity.isChief(authentication, #departmentId)")
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'MANAGE')")
     public DepartmentFolderDto updateFolder(@PathVariable UUID departmentId, @PathVariable UUID id, @RequestBody UpdateFolderDto dto) {
-        return folderService.updateFolder(id, dto);
+        return folderService.updateFolder(departmentId, id, dto);
     }
 
     @DeleteMapping("/folders/{id}")
-    @PreAuthorize("hasRole('ADMIN') or @departmentSecurity.isChief(authentication, #departmentId)")
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'MANAGE')")
     public ResponseEntity<?> deleteFolder(@PathVariable UUID departmentId, @PathVariable UUID id) {
-        folderService.deleteFolder(id);
+        folderService.deleteFolder(departmentId, id);
         return ResponseEntity.ok().build();
     }
 
     @PutMapping("/folders/{id}/restore")
-    @PreAuthorize("hasRole('ADMIN') or @departmentSecurity.isChief(authentication, #departmentId)")
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'MANAGE')")
     public DepartmentFolderDto restoreFolder(
             @PathVariable UUID departmentId,
             @PathVariable UUID id,
             @RequestParam(required = false) UUID targetParentFolderId
     ) {
-        return folderService.restoreFolder(id, targetParentFolderId);
+        return folderService.restoreFolder(departmentId, id, targetParentFolderId);
     }
 
     @GetMapping("/folders")
-    public List<DepartmentFolderDto> listFolders(@RequestParam(required = false) UUID parentId) {
-        return folderService.listFolders(parentId);
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'ACCESS')")
+    public List<DepartmentFolderDto> listFolders(@PathVariable UUID departmentId, @RequestParam(required = false) UUID parentId) {
+        return folderService.listFolders(departmentId, parentId);
     }
 
     @GetMapping("/folders/tree")
-    public List<FolderTreeDto> getFolderTree() {
-        return folderService.getFolderTree();
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'ACCESS')")
+    public List<FolderTreeDto> getFolderTree(@PathVariable UUID departmentId) {
+        return folderService.getFolderTree(departmentId);
     }
 }

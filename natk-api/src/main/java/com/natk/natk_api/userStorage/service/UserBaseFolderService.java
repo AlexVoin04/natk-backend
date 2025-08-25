@@ -18,9 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class UserBaseFolderService extends BaseFolderService<UserFolderEntity, UserFolderRepository, FolderDto> {
@@ -39,7 +37,6 @@ public class UserBaseFolderService extends BaseFolderService<UserFolderEntity, U
         this.userFolderMapper = userFolderMapper;
     }
 
-    @Override
     protected UserContext getContext(){
         return new UserContext(currentUserService.getCurrentUser());
     }
@@ -109,14 +106,15 @@ public class UserBaseFolderService extends BaseFolderService<UserFolderEntity, U
         UserEntity user = ((UserContext) context).user();
         boolean modified = false;
 
-        if (dto.newName() != null && !dto.newName().isBlank()) {
-            folder.setName(dto.newName());
+        if (Boolean.TRUE.equals(dto.moveToRoot()) && folder.getParentFolder() != null) {
+            folderNameResolverService.ensureUniqueNameOrThrow(dto.newName(), null, user);
+            folder.setParentFolder(null);
             modified = true;
         }
 
-        if (Boolean.TRUE.equals(dto.moveToRoot())) {
-            folderNameResolverService.ensureUniqueNameOrThrow(dto.newName(), null, user);
-            folder.setParentFolder(null);
+        if (dto.newName() != null && !dto.newName().isBlank()) {
+            folderNameResolverService.ensureUniqueNameOrThrow(dto.newName(), folder.getParentFolder(), user);
+            folder.setName(dto.newName());
             modified = true;
         }
 
@@ -156,6 +154,7 @@ public class UserBaseFolderService extends BaseFolderService<UserFolderEntity, U
     protected void applyDelete(UserFolderEntity folder) {
         folder.setDeleted(true);
         folder.setDeletedAt(Instant.now());
+        folderRepo.save(folder);
     }
 
     @Override
@@ -167,7 +166,6 @@ public class UserBaseFolderService extends BaseFolderService<UserFolderEntity, U
         folder.setParentFolder(targetParent);
         folder.setDeleted(false);
         folder.setDeletedAt(null);
-        folderRepo.save(folder);
         return userFolderMapper.toDto(folderRepo.save(folder));
     }
 
@@ -182,31 +180,13 @@ public class UserBaseFolderService extends BaseFolderService<UserFolderEntity, U
     @Override
     protected List<FolderTreeDto> applyTree(StorageContext context) {
         UserEntity user = ((UserContext) context).user();
-        List<UserFolderEntity> allFolders = folderRepo.findByUserAndIsDeletedFalse(user);
+        List<UserFolderEntity> all = folderRepo.findByUserAndIsDeletedFalse(user);
 
-        Map<UUID, List<UserFolderEntity>> childrenMap = allFolders.stream()
-                .filter(f -> f.getParentFolder() != null)
-                .collect(Collectors.groupingBy(f -> f.getParentFolder().getId()));
-
-        List<UserFolderEntity> rootFolders = allFolders.stream()
-                .filter(f -> f.getParentFolder() == null)
-                .toList();
-
-        return rootFolders.stream()
-                .map(folder -> buildTree(folder, childrenMap, 0))
-                .toList();
-    }
-
-    private FolderTreeDto buildTree(UserFolderEntity folder, Map<UUID, List<UserFolderEntity>> childrenMap, int depth) {
-        List<FolderTreeDto> children = childrenMap.getOrDefault(folder.getId(), List.of()).stream()
-                .map(child -> buildTree(child, childrenMap, depth + 1))
-                .toList();
-
-        return new FolderTreeDto(
-                folder.getId(),
-                folder.getName(),
-                depth,
-                children
+        return buildFolderTree(
+                all,
+                UserFolderEntity::getId,
+                UserFolderEntity::getParentFolder,
+                UserFolderEntity::getName
         );
     }
 

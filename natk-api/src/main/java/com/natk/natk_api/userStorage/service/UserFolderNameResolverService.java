@@ -1,26 +1,33 @@
 package com.natk.natk_api.userStorage.service;
 
-import com.natk.natk_api.baseStorage.intarfece.FolderNameResolver;
+import com.natk.natk_api.baseStorage.service.AbstractFolderNameResolverService;
 import com.natk.natk_api.userStorage.model.UserFolderEntity;
 import com.natk.natk_api.userStorage.repository.UserFolderRepository;
 import com.natk.natk_api.users.model.UserEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
-public class UserFolderNameResolverService implements FolderNameResolver<UserFolderEntity, UserEntity> {
+public class UserFolderNameResolverService
+        extends AbstractFolderNameResolverService<UserFolderEntity, UserEntity> {
 
     private final UserFolderRepository folderRepo;
 
     @Override
-    public void ensureUniqueNameOrThrow(String desiredName, UserFolderEntity parentFolder, UserEntity user) {
-        boolean exists = (parentFolder == null)
-                ? folderRepo.existsByUserAndParentFolderIsNullAndNameAndIsDeletedFalse(user, desiredName)
-                : folderRepo.existsByUserAndParentFolderAndNameAndIsDeletedFalse(user, parentFolder, desiredName);
-
-        if (exists) {
-            throw new IllegalArgumentException("Folder with the same name already exists in this directory");
+    protected Set<String> getExistingFolderNames(UserFolderEntity parentFolder, UserEntity user) {
+        List<UserFolderEntity> folders;
+        if (parentFolder == null) {
+            folders = folderRepo.findByUserAndParentFolderIsNullAndIsDeletedFalse(user);
+        } else {
+            folders = folderRepo.findByUserAndParentFolderAndIsDeletedFalse(user, parentFolder);
         }
+        return folders.stream()
+                .map(UserFolderEntity::getName)
+                .collect(Collectors.toSet());
     }
 }

@@ -43,7 +43,6 @@ public class DepartmentFolderEntity {
     @JoinColumn(name = "department_id")
     private DepartmentEntity department;
 
-    @ManyToOne(optional = false)
     private String createdBy;
 
     @Column(name = "is_public", nullable = false)

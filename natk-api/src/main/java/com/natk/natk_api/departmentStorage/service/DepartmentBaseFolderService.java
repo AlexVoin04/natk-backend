@@ -4,6 +4,7 @@ import com.natk.natk_api.baseStorage.context.DepartmentContext;
 import com.natk.natk_api.baseStorage.context.StorageContext;
 import com.natk.natk_api.baseStorage.service.BaseFolderService;
 import com.natk.natk_api.department.model.DepartmentEntity;
+import com.natk.natk_api.department.permission.DepartmentAccessService;
 import com.natk.natk_api.departmentStorage.dto.DepartmentFolderDto;
 import com.natk.natk_api.departmentStorage.mapper.DepartmentFolderMapper;
 import com.natk.natk_api.departmentStorage.model.DepartmentFolderEntity;
@@ -19,9 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFolderEntity, DepartmentFolderRepository, DepartmentFolderDto> {
@@ -44,11 +43,38 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
         this.departmentAccessService = departmentAccessService;
     }
 
+    @Transactional
+    public DepartmentFolderDto createFolder(UUID departmentId, CreateFolderDto dto) {
+        return super.createFolder(dto, getContext(departmentId));
+    }
 
-    @Override
-    protected StorageContext getContext() {
+    @Transactional
+    public void deleteFolder(UUID departmentId, UUID folderId) {
+        super.deleteFolder(folderId, getContext(departmentId));
+    }
+
+    @Transactional
+    public DepartmentFolderDto updateFolder(UUID departmentId, UUID folderId, UpdateFolderDto dto) {
+        return super.updateFolder(folderId, dto, getContext(departmentId));
+    }
+
+    @Transactional
+    public DepartmentFolderDto restoreFolder(UUID departmentId, UUID folderId, UUID targetParentFolderId) {
+        return super.restoreFolder(folderId, targetParentFolderId, getContext(departmentId));
+    }
+
+    @Transactional
+    public List<DepartmentFolderDto> listFolders(UUID departmentId, UUID parentFolderId) {
+        return super.listFolders(parentFolderId, getContext(departmentId));
+    }
+
+    @Transactional
+    public List<FolderTreeDto> getFolderTree(UUID departmentId) {
+        return super.getFolderTree(getContext(departmentId));
+    }
+
+    protected StorageContext getContext(UUID departmentId) {
         UserEntity user = currentUserService.getCurrentUser();
-        UUID departmentId = departmentAccessService.getCurrentDepartmentId();
         return new DepartmentContext(user, departmentId);
     }
 
@@ -60,7 +86,7 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
         DepartmentFolderEntity folder = folderRepo.findByIdAndDepartmentAndIsDeletedFalse(id, dept)
                 .orElseThrow(() -> new AccessDeniedException("Folder not found"));
 
-        if (!folder.isPublic() && !departmentAccessService.hasAccess(dCtx.user(), folder)) {
+        if (!folder.isPublic() && !departmentAccessService.hasFolderAccess(dCtx.user(), folder)) {
             throw new AccessDeniedException("Access denied");
         }
         return folder;
@@ -92,18 +118,15 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
     }
 
     @Override
-    protected void checkCreateAccess(DepartmentFolderEntity parent, StorageContext ctx) {
-        DepartmentContext dCtx = (DepartmentContext) ctx;
-        if (!departmentAccessService.canManage(dCtx.user(), dCtx.departmentId())) {
-            throw new AccessDeniedException("No rights to create folder");
-        }
+    protected void checkCreateAccess(DepartmentFolderEntity departmentFolderEntity, StorageContext ctx) {
+        //Проверка уж есть в findFolder
     }
 
     @Override
     protected void checkUpdateAccess(DepartmentFolderEntity departmentFolderEntity, StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
         if (!departmentAccessService.canManage(dCtx.user(), dCtx.departmentId())) {
-            throw new AccessDeniedException("No rights to update folder");
+            throw new AccessDeniedException("No access rights to the folder");
         }
     }
 
@@ -128,6 +151,7 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
         return folderMapper.toDto(folderRepo.save(folder));
     }
 
+    //TODO: разделить переименование и перемещение
     @Override
     protected DepartmentFolderDto applyUpdate(DepartmentFolderEntity folder, UpdateFolderDto dto, StorageContext context) {
         boolean modified = false;
@@ -135,12 +159,17 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
         DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
 
         if (dto.newName() != null && !dto.newName().isBlank()) {
-            folderNameResolverService.ensureUniqueNameOrThrow(dto.newName(), folder.getParentFolder(), dept);
             folder.setName(dto.newName());
             modified = true;
         }
 
-        if (dto.newParentFolderId().isPresent()) {
+        if (Boolean.TRUE.equals(dto.moveToRoot()) && folder.getParentFolder() != null) {
+            folderNameResolverService.ensureUniqueNameOrThrow(dto.newName(), null, dept);
+            folder.setParentFolder(null);
+            modified = true;
+        }
+
+        if (Boolean.FALSE.equals(dto.moveToRoot()) && dto.newParentFolderId().isPresent()) {
             DepartmentFolderEntity newParent = folderRepo.findByIdAndDepartmentAndIsDeletedFalse(dto.newParentFolderId().get(), dept)
                     .orElseThrow(() -> new AccessDeniedException("New parent not found"));
 
@@ -148,7 +177,7 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
                 throw new IllegalArgumentException("Cannot move folder inside its descendant");
             }
 
-            folderNameResolverService.ensureUniqueNameOrThrow(dto.newName(), newParent, dept);
+            folderNameResolverService.ensureUniqueNameOrThrow(folder.getName(), newParent, dept);
             folder.setParentFolder(newParent);
             modified = true;
         }
@@ -170,6 +199,7 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
     protected void applyDelete(DepartmentFolderEntity departmentFolderEntity) {
         departmentFolderEntity.setDeleted(true);
         departmentFolderEntity.setDeletedAt(Instant.now());
+        folderRepo.save(departmentFolderEntity);
     }
 
     @Override
@@ -189,7 +219,7 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
         DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
 
         return folderRepo.findByDepartmentAndParentFolderAndIsDeletedFalse(dept, parent).stream()
-                .filter(f -> f.isPublic() || departmentAccessService.hasAccess(dCtx.user(), f))
+                .filter(f -> f.isPublic() || departmentAccessService.hasFolderAccess(dCtx.user(), f))
                 .map(folderMapper::toDto)
                 .toList();
     }
@@ -199,66 +229,15 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
         DepartmentContext dCtx = (DepartmentContext) context;
         DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
 
-        List<DepartmentFolderEntity> all = folderRepo.findByDepartmentAndIsDeletedFalse(dept);
-
-        // фильтруем только доступные
-        all = all.stream()
-                .filter(f -> f.isPublic() || departmentAccessService.hasAccess(dCtx.user(), f))
+        List<DepartmentFolderEntity> all = folderRepo.findByDepartmentAndIsDeletedFalse(dept).stream()
+                .filter(f -> f.isPublic() || departmentAccessService.hasFolderAccess(dCtx.user(), f))
                 .toList();
 
-        Map<UUID, List<DepartmentFolderEntity>> childrenMap = all.stream()
-                .filter(f -> f.getParentFolder() != null)
-                .collect(Collectors.groupingBy(f -> f.getParentFolder().getId()));
-
-        List<DepartmentFolderEntity> roots = all.stream()
-                .filter(f -> f.getParentFolder() == null)
-                .toList();
-
-        return roots.stream()
-                .map(folder -> buildTree(folder, childrenMap, 0))
-                .toList();
-    }
-
-    private FolderTreeDto buildTree(DepartmentFolderEntity folder, Map<UUID, List<DepartmentFolderEntity>> childrenMap, int depth) {
-        List<FolderTreeDto> children = childrenMap.getOrDefault(folder.getId(), List.of()).stream()
-                .map(child -> buildTree(child, childrenMap, depth + 1))
-                .toList();
-
-        return new FolderTreeDto(
-                folder.getId(),
-                folder.getName(),
-                depth,
-                children
+        return buildFolderTree(
+                all,
+                DepartmentFolderEntity::getId,
+                DepartmentFolderEntity::getParentFolder,
+                DepartmentFolderEntity::getName
         );
-    }
-
-    @Transactional
-    public DepartmentFolderDto createFolder(CreateFolderDto dto) {
-        return super.createFolder(dto, getContext());
-    }
-
-    @Transactional
-    public void deleteFolder(UUID folderId) {
-        super.deleteFolder(folderId, getContext());
-    }
-
-    @Transactional
-    public DepartmentFolderDto updateFolder(UUID folderId, UpdateFolderDto dto) {
-        return super.updateFolder(folderId, dto, getContext());
-    }
-
-    @Transactional
-    public DepartmentFolderDto restoreFolder(UUID folderId, UUID targetParentFolderId) {
-        return super.restoreFolder(folderId, targetParentFolderId, getContext());
-    }
-
-    @Transactional
-    public List<DepartmentFolderDto> listFolders(UUID parentFolderId) {
-        return super.listFolders(parentFolderId, getContext());
-    }
-
-    @Transactional
-    public List<FolderTreeDto> getFolderTree() {
-        return super.getFolderTree(getContext());
     }
 }

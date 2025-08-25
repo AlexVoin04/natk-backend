@@ -17,4 +17,6 @@ public interface DepartmentFolderRepository extends JpaRepository<DepartmentFold
 
     boolean existsByDepartmentAndParentFolderAndNameAndIsDeletedFalse(DepartmentEntity dept, DepartmentFolderEntity parent, String name);
     boolean existsByDepartmentAndParentFolderIsNullAndNameAndIsDeletedFalse(DepartmentEntity dept, String name);
+
+    List<DepartmentFolderEntity> findByDepartmentAndParentFolderIsNullAndIsDeletedFalse(DepartmentEntity dept);
 }

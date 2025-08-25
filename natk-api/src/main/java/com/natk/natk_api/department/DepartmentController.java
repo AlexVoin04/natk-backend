@@ -56,19 +56,19 @@ public class DepartmentController {
 
     //TODO: фильтрация
     @GetMapping("/{departmentId}/users/not-in")
-    @PreAuthorize("hasRole('ADMIN') or @departmentSecurity.isChief(authentication, #departmentId)")
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'MANAGE')")
     public List<UserInDepartmentDto> listUsersNotInDepartment(@PathVariable UUID departmentId) {
         return departmentService.listUsersNotInDepartment(departmentId);
     }
 
     @GetMapping("/{departmentId}/users")
-    @PreAuthorize("hasRole('ADMIN') or @departmentSecurity.isChief(authentication, #departmentId)")
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'MANAGE')")
     public List<DepartmentUserDto> listDepartmentUsers(@PathVariable UUID departmentId) {
         return departmentService.listDepartmentUsers(departmentId);
     }
 
     @PostMapping("/{departmentId}/users/{userId}")
-    @PreAuthorize("hasRole('ADMIN') or @departmentSecurity.isChief(authentication, #departmentId)")
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'MANAGE')")
     public DepartmentUserDto addUser(
             @PathVariable UUID departmentId,
             @PathVariable UUID userId
@@ -77,13 +77,13 @@ public class DepartmentController {
     }
 
     @PostMapping("/{departmentId}/users/bulk")
-    @PreAuthorize("hasRole('ADMIN') or @departmentSecurity.isChief(authentication, #id)")
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'MANAGE')")
     public List<DepartmentUserDto> addUsers(@PathVariable UUID departmentId, @RequestBody @Valid AddDepartmentUsersDto dto) {
         return departmentService.addUsersToDepartment(departmentId, dto);
     }
 
     @DeleteMapping("/{departmentId}/users/{userId}")
-    @PreAuthorize("hasRole('ADMIN') or @departmentSecurity.isChief(authentication, #departmentId)")
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'MANAGE')")
     public ResponseEntity<?> removeUser(@PathVariable UUID departmentId, @PathVariable UUID userId
     ) {
         departmentService.removeUserFromDepartment(departmentId, userId);
@@ -91,7 +91,7 @@ public class DepartmentController {
     }
 
     @DeleteMapping("/{departmentId}/users")
-    @PreAuthorize("hasRole('ADMIN') or @departmentSecurity.isChief(authentication, #departmentId)")
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'MANAGE')")
     public ResponseEntity<?> removeUsers(
             @PathVariable UUID departmentId,
             @RequestBody @Valid RemoveDepartmentUsersDto dto

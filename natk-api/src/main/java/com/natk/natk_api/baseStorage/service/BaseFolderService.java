@@ -9,7 +9,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public abstract class BaseFolderService<
         TFolder,
@@ -26,7 +29,6 @@ public abstract class BaseFolderService<
     public TDto createFolder(CreateFolderDto dto, StorageContext ctx) {
         TFolder parent = dto.parentFolderId() != null ? findFolder(dto.parentFolderId(), ctx) : null;
         checkCreateAccess(parent, ctx);
-
         return doCreateFolder(dto.name(), parent, ctx);
     }
 
@@ -34,7 +36,6 @@ public abstract class BaseFolderService<
     public TDto updateFolder(UUID id, UpdateFolderDto dto, StorageContext ctx) {
         TFolder folder = findFolder(id, ctx);
         checkUpdateAccess(folder, ctx);
-
         return applyUpdate(folder, dto, ctx);
     }
 
@@ -42,9 +43,7 @@ public abstract class BaseFolderService<
     public void deleteFolder(UUID id, StorageContext ctx) {
         TFolder folder = findFolder(id, ctx);
         checkDeleteAccess(folder, ctx);
-
         applyDelete(folder);
-        folderRepo.save(folder);
     }
 
     @Transactional
@@ -60,8 +59,6 @@ public abstract class BaseFolderService<
     @Transactional
     public List<TDto> listFolders(UUID parentFolderId, StorageContext ctx) {
         TFolder folder = parentFolderId != null ? findFolder(parentFolderId, ctx) : null;
-        checkUpdateAccess(folder, ctx);
-
         return applyList(folder, ctx);
     }
 
@@ -70,8 +67,45 @@ public abstract class BaseFolderService<
         return applyTree(ctx);
     }
 
+    protected List<FolderTreeDto> buildFolderTree(
+            List<TFolder> all,
+            Function<TFolder, UUID> idExtractor,
+            Function<TFolder, TFolder> parentExtractor,
+            Function<TFolder, String> nameExtractor
+    ) {
+        Map<UUID, List<TFolder>> childrenMap = all.stream()
+                .filter(f -> parentExtractor.apply(f) != null)
+                .collect(Collectors.groupingBy(f -> idExtractor.apply(parentExtractor.apply(f))));
+
+        List<TFolder> roots = all.stream()
+                .filter(f -> parentExtractor.apply(f) == null)
+                .toList();
+
+        return roots.stream()
+                .map(folder -> buildTree(folder, childrenMap, idExtractor, nameExtractor, 0))
+                .toList();
+    }
+
+    private FolderTreeDto buildTree(
+            TFolder folder,
+            Map<UUID, List<TFolder>> childrenMap,
+            Function<TFolder, UUID> idExtractor,
+            Function<TFolder, String> nameExtractor,
+            int depth
+    ) {
+        List<FolderTreeDto> children = childrenMap.getOrDefault(idExtractor.apply(folder), List.of()).stream()
+                .map(child -> buildTree(child, childrenMap, idExtractor, nameExtractor, depth + 1))
+                .toList();
+
+        return new FolderTreeDto(
+                idExtractor.apply(folder),
+                nameExtractor.apply(folder),
+                depth,
+                children
+        );
+    }
+
     // ==== abstract hooks ====
-    protected abstract StorageContext getContext();
     protected abstract TFolder findFolder(UUID id, StorageContext ctx);
     protected abstract TFolder findDeletedFolder(UUID id, StorageContext ctx);
     protected abstract TFolder buildNewFolder(String name, TFolder parent, StorageContext ctx);
