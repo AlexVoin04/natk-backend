@@ -1,5 +1,7 @@
 package com.natk.natk_api.userStorage;
 
+import com.natk.natk_api.baseStorage.dto.MoveFolderDto;
+import com.natk.natk_api.baseStorage.dto.RenameFolderDto;
 import com.natk.natk_api.llms.dto.QuestionRequestDto;
 import com.natk.natk_api.llms.dto.QuestionResponseDto;
 import com.natk.natk_api.llms.service.QuestionGenerationService;
@@ -11,7 +13,6 @@ import com.natk.natk_api.userStorage.dto.FolderContentResponseDto;
 import com.natk.natk_api.userStorage.dto.FolderDto;
 import com.natk.natk_api.userStorage.dto.FolderTreeDto;
 import com.natk.natk_api.userStorage.dto.UpdateFileDto;
-import com.natk.natk_api.userStorage.dto.UpdateFolderDto;
 import com.natk.natk_api.userStorage.dto.UploadFileDto;
 import com.natk.natk_api.userStorage.service.UserBaseFolderService;
 import com.natk.natk_api.userStorage.service.UserFileService;
@@ -70,9 +71,17 @@ public class UserStorageController {
         return userFolderService.listFolders(parentId);
     }
 
-    @PutMapping("/folders/{id}")
-    public FolderDto updateFolder(@PathVariable UUID id, @RequestBody UpdateFolderDto dto) {
-        return userFolderService.updateFolder(id, dto);
+    @PutMapping("/folders/{id}/rename")
+    public FolderDto renameFolder(@PathVariable UUID id, @RequestBody RenameFolderDto dto) {
+        return userFolderService.renameFolder(id, dto);
+    }
+
+    @PutMapping("/folders/{id}/move")
+    public FolderDto moveFolder(
+            @PathVariable UUID id,
+            @RequestBody MoveFolderDto dto
+    ) {
+        return userFolderService.moveFolder(id, dto);
     }
 
     @GetMapping("/folders/tree")

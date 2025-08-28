@@ -2,6 +2,8 @@ package com.natk.natk_api.departmentStorage.service;
 
 import com.natk.natk_api.baseStorage.context.DepartmentContext;
 import com.natk.natk_api.baseStorage.context.StorageContext;
+import com.natk.natk_api.baseStorage.dto.MoveFolderDto;
+import com.natk.natk_api.baseStorage.dto.RenameFolderDto;
 import com.natk.natk_api.baseStorage.service.BaseFolderService;
 import com.natk.natk_api.department.model.DepartmentEntity;
 import com.natk.natk_api.department.permission.DepartmentAccessService;
@@ -11,7 +13,6 @@ import com.natk.natk_api.departmentStorage.model.DepartmentFolderEntity;
 import com.natk.natk_api.departmentStorage.repository.DepartmentFolderRepository;
 import com.natk.natk_api.userStorage.dto.CreateFolderDto;
 import com.natk.natk_api.userStorage.dto.FolderTreeDto;
-import com.natk.natk_api.userStorage.dto.UpdateFolderDto;
 import com.natk.natk_api.users.model.UserEntity;
 import com.natk.natk_api.users.service.CurrentUserService;
 import org.springframework.security.access.AccessDeniedException;
@@ -54,8 +55,13 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
     }
 
     @Transactional
-    public DepartmentFolderDto updateFolder(UUID departmentId, UUID folderId, UpdateFolderDto dto) {
-        return super.updateFolder(folderId, dto, getContext(departmentId));
+    public DepartmentFolderDto renameFolder(UUID departmentId, UUID folderId, RenameFolderDto dto) {
+        return super.renameFolder(folderId, dto, getContext(departmentId));
+    }
+
+    @Transactional
+    public DepartmentFolderDto moveFolder(UUID departmentId, UUID folderId, MoveFolderDto dto) {
+        return super.moveFolder(folderId, dto, getContext(departmentId));
     }
 
     @Transactional
@@ -119,7 +125,12 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
 
     @Override
     protected void checkCreateAccess(DepartmentFolderEntity departmentFolderEntity, StorageContext ctx) {
-        //Проверка уж есть в findFolder
+        DepartmentContext dCtx = (DepartmentContext) ctx;
+        if(departmentFolderEntity == null){
+            if (!departmentAccessService.canManage(dCtx.user(), dCtx.departmentId())) {
+                throw new AccessDeniedException("No rights to create folder in this department");
+            }
+        }
     }
 
     @Override
@@ -151,48 +162,38 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
         return folderMapper.toDto(folderRepo.save(folder));
     }
 
-    //TODO: разделить переименование и перемещение
     @Override
-    protected DepartmentFolderDto applyUpdate(DepartmentFolderEntity folder, UpdateFolderDto dto, StorageContext context) {
-        boolean modified = false;
+    protected DepartmentFolderDto applyRename(DepartmentFolderEntity folder, RenameFolderDto dto, StorageContext context) {
         DepartmentContext dCtx = (DepartmentContext) context;
         DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
 
-        if (dto.newName() != null && !dto.newName().isBlank()) {
-            folder.setName(dto.newName());
-            modified = true;
-        }
-
-        if (Boolean.TRUE.equals(dto.moveToRoot()) && folder.getParentFolder() != null) {
-            folderNameResolverService.ensureUniqueNameOrThrow(dto.newName(), null, dept);
-            folder.setParentFolder(null);
-            modified = true;
-        }
-
-        if (Boolean.FALSE.equals(dto.moveToRoot()) && dto.newParentFolderId().isPresent()) {
-            DepartmentFolderEntity newParent = folderRepo.findByIdAndDepartmentAndIsDeletedFalse(dto.newParentFolderId().get(), dept)
-                    .orElseThrow(() -> new AccessDeniedException("New parent not found"));
-
-            if (isDescendant(folder, newParent)) {
-                throw new IllegalArgumentException("Cannot move folder inside its descendant");
-            }
-
-            folderNameResolverService.ensureUniqueNameOrThrow(folder.getName(), newParent, dept);
-            folder.setParentFolder(newParent);
-            modified = true;
-        }
-
-        if (!modified) throw new IllegalArgumentException("No changes provided");
-
+        folderNameResolverService.ensureUniqueNameOrThrow(dto.newName(), folder.getParentFolder(), dept);
+        folder.setName(dto.newName());
         return folderMapper.toDto(folderRepo.save(folder));
     }
 
-    private boolean isDescendant(DepartmentFolderEntity folder, DepartmentFolderEntity target) {
-        while (target != null) {
-            if (target.getId().equals(folder.getId())) return true;
-            target = target.getParentFolder();
+    @Override
+    protected DepartmentFolderDto applyMove(DepartmentFolderEntity folder, MoveFolderDto dto, StorageContext context) {
+        DepartmentContext dCtx = (DepartmentContext) context;
+        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+
+        if (dto.moveToRoot()) {
+            folderNameResolverService.ensureUniqueNameOrThrow(folder.getName(), null, dept);
+            folder.setParentFolder(null);
+        } else if (dto.newParentFolderId() != null) {
+            DepartmentFolderEntity newParent = folderRepo
+                    .findByIdAndDepartmentAndIsDeletedFalse(dto.newParentFolderId(), dept)
+                    .orElseThrow(() -> new AccessDeniedException("New parent not found"));
+
+            validateNotMovingIntoSelfOrDescendant(folder.getId(), newParent.getId());
+
+            folderNameResolverService.ensureUniqueNameOrThrow(folder.getName(), newParent, dept);
+            folder.setParentFolder(newParent);
+        } else {
+            throw new IllegalArgumentException("No new parent folder specified");
         }
-        return false;
+
+        return folderMapper.toDto(folderRepo.save(folder));
     }
 
     @Override
@@ -204,8 +205,8 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
 
     @Override
     protected DepartmentFolderDto applyRestore(DepartmentFolderEntity folder, DepartmentFolderEntity parent) {
-        if (isDescendant(folder, parent)) {
-            throw new IllegalArgumentException("Cannot restore into descendant");
+        if (parent != null) {
+            validateNotMovingIntoSelfOrDescendant(folder.getId(), parent.getId());
         }
         folder.setParentFolder(parent);
         folder.setDeleted(false);

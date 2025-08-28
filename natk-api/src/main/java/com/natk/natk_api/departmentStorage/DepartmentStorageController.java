@@ -1,10 +1,11 @@
 package com.natk.natk_api.departmentStorage;
 
+import com.natk.natk_api.baseStorage.dto.MoveFolderDto;
+import com.natk.natk_api.baseStorage.dto.RenameFolderDto;
 import com.natk.natk_api.departmentStorage.dto.DepartmentFolderDto;
 import com.natk.natk_api.departmentStorage.service.DepartmentBaseFolderService;
 import com.natk.natk_api.userStorage.dto.CreateFolderDto;
 import com.natk.natk_api.userStorage.dto.FolderTreeDto;
-import com.natk.natk_api.userStorage.dto.UpdateFolderDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -33,10 +34,24 @@ public class DepartmentStorageController {
         return folderService.createFolder(departmentId, dto);
     }
 
-    @PutMapping("/folders/{id}")
+    @PutMapping("/folders/{id}/rename")
     @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'MANAGE')")
-    public DepartmentFolderDto updateFolder(@PathVariable UUID departmentId, @PathVariable UUID id, @RequestBody UpdateFolderDto dto) {
-        return folderService.updateFolder(departmentId, id, dto);
+    public DepartmentFolderDto renameFolder(
+            @PathVariable UUID departmentId,
+            @PathVariable UUID id,
+            @RequestBody RenameFolderDto dto
+    ) {
+        return folderService.renameFolder(departmentId, id, dto);
+    }
+
+    @PutMapping("/folders/{id}/move")
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'MANAGE')")
+    public DepartmentFolderDto moveFolder(
+            @PathVariable UUID departmentId,
+            @PathVariable UUID id,
+            @RequestBody MoveFolderDto dto
+    ) {
+        return folderService.moveFolder(departmentId, id, dto);
     }
 
     @DeleteMapping("/folders/{id}")

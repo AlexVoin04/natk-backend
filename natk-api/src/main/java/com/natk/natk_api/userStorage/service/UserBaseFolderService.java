@@ -2,11 +2,12 @@ package com.natk.natk_api.userStorage.service;
 
 import com.natk.natk_api.baseStorage.context.StorageContext;
 import com.natk.natk_api.baseStorage.context.UserContext;
+import com.natk.natk_api.baseStorage.dto.MoveFolderDto;
+import com.natk.natk_api.baseStorage.dto.RenameFolderDto;
 import com.natk.natk_api.baseStorage.service.BaseFolderService;
 import com.natk.natk_api.userStorage.dto.CreateFolderDto;
 import com.natk.natk_api.userStorage.dto.FolderDto;
 import com.natk.natk_api.userStorage.dto.FolderTreeDto;
-import com.natk.natk_api.userStorage.dto.UpdateFolderDto;
 import com.natk.natk_api.userStorage.mapper.UserFolderMapper;
 import com.natk.natk_api.userStorage.model.UserFolderEntity;
 import com.natk.natk_api.userStorage.repository.UserFolderRepository;
@@ -41,6 +42,40 @@ public class UserBaseFolderService extends BaseFolderService<UserFolderEntity, U
         return new UserContext(currentUserService.getCurrentUser());
     }
 
+    @Transactional
+    public FolderDto createFolder(CreateFolderDto dto) {
+        return super.createFolder(dto, getContext());
+    }
+
+    @Transactional
+    public void deleteFolder(UUID folderId) {
+        super.deleteFolder(folderId, getContext());
+    }
+
+    @Transactional
+    public FolderDto renameFolder(UUID folderId, RenameFolderDto dto) {
+        return super.renameFolder(folderId, dto, getContext());
+    }
+
+    @Transactional
+    public FolderDto moveFolder(UUID folderId, MoveFolderDto dto) {
+        return super.moveFolder(folderId, dto, getContext());
+    }
+
+    @Transactional
+    public FolderDto restoreFolder(UUID folderId, UUID targetParentFolderId) {
+        return super.restoreFolder(folderId, targetParentFolderId, getContext());
+    }
+
+    @Transactional
+    public List<FolderDto> listFolders(UUID parentFolderId) {
+        return super.listFolders(parentFolderId, getContext());
+    }
+
+    @Transactional
+    public List<FolderTreeDto> getFolderTree() {
+        return super.getFolderTree(getContext());
+    }
 
     @Override
     protected UserFolderEntity findFolder(UUID id, StorageContext ctx) {
@@ -102,52 +137,35 @@ public class UserBaseFolderService extends BaseFolderService<UserFolderEntity, U
     }
 
     @Override
-    protected FolderDto applyUpdate(UserFolderEntity folder, UpdateFolderDto dto, StorageContext context) {
+    protected FolderDto applyRename(UserFolderEntity folder, RenameFolderDto dto, StorageContext context) {
         UserEntity user = ((UserContext) context).user();
-        boolean modified = false;
-
-        if (Boolean.TRUE.equals(dto.moveToRoot()) && folder.getParentFolder() != null) {
-            folderNameResolverService.ensureUniqueNameOrThrow(dto.newName(), null, user);
-            folder.setParentFolder(null);
-            modified = true;
-        }
-
-        if (dto.newName() != null && !dto.newName().isBlank()) {
-            folderNameResolverService.ensureUniqueNameOrThrow(dto.newName(), folder.getParentFolder(), user);
-            folder.setName(dto.newName());
-            modified = true;
-        }
-
-        else if (dto.newParentFolderId().isPresent()) {
-            UUID newParentId = dto.newParentFolderId().get();
-
-            UserFolderEntity newParent = folderRepo.findByIdAndUserAndIsDeletedFalse(newParentId, user)
-                    .orElseThrow(() -> new AccessDeniedException("New parent folder not found or not owned by user or deleted"));
-
-            if (isDescendant(folder, newParent)) {
-                throw new IllegalArgumentException("Cannot move folder inside its descendant");
-            }
-
-            folderNameResolverService.ensureUniqueNameOrThrow(dto.newName(), newParent, user);
-            folder.setParentFolder(newParent);
-            modified = true;
-        }
-
-        if (!modified) {
-            throw new IllegalArgumentException("No changes provided for folder update");
-        }
-
+        folderNameResolverService.ensureUniqueNameOrThrow(dto.newName(), folder.getParentFolder(), user);
+        folder.setName(dto.newName());
         folderRepo.save(folder);
-
         return userFolderMapper.toDto(folder);
     }
 
-    private boolean isDescendant(UserFolderEntity folder, UserFolderEntity target) {
-        while (target != null) {
-            if (target.getId().equals(folder.getId())) return true;
-            target = target.getParentFolder();
+    @Override
+    protected FolderDto applyMove(UserFolderEntity folder, MoveFolderDto dto, StorageContext context) {
+        UserEntity user = ((UserContext) context).user();
+
+        if (dto.moveToRoot()) {
+            folderNameResolverService.ensureUniqueNameOrThrow(folder.getName(), null, user);
+            folder.setParentFolder(null);
+        } else if (dto.newParentFolderId() != null) {
+            UserFolderEntity newParent = folderRepo
+                    .findByIdAndUserAndIsDeletedFalse(dto.newParentFolderId(), user)
+                    .orElseThrow(() -> new AccessDeniedException("New parent folder not found"));
+
+            validateNotMovingIntoSelfOrDescendant(folder.getId(), newParent.getId());
+
+            folderNameResolverService.ensureUniqueNameOrThrow(folder.getName(), newParent, user);
+            folder.setParentFolder(newParent);
+        } else {
+            throw new IllegalArgumentException("No new parent folder specified");
         }
-        return false;
+
+        return userFolderMapper.toDto(folderRepo.save(folder));
     }
 
     @Override
@@ -158,12 +176,12 @@ public class UserBaseFolderService extends BaseFolderService<UserFolderEntity, U
     }
 
     @Override
-    protected FolderDto applyRestore(UserFolderEntity folder, UserFolderEntity targetParent) {
-        if (isDescendant(folder, targetParent)) {
-            throw new IllegalArgumentException("Cannot restore folder into its own descendant");
+    protected FolderDto applyRestore(UserFolderEntity folder, UserFolderEntity parent) {
+        if (parent != null) {
+            validateNotMovingIntoSelfOrDescendant(folder.getId(), parent.getId());
         }
 
-        folder.setParentFolder(targetParent);
+        folder.setParentFolder(parent);
         folder.setDeleted(false);
         folder.setDeletedAt(null);
         return userFolderMapper.toDto(folderRepo.save(folder));
@@ -188,35 +206,5 @@ public class UserBaseFolderService extends BaseFolderService<UserFolderEntity, U
                 UserFolderEntity::getParentFolder,
                 UserFolderEntity::getName
         );
-    }
-
-    @Transactional
-    public FolderDto createFolder(CreateFolderDto dto) {
-        return super.createFolder(dto, getContext());
-    }
-
-    @Transactional
-    public void deleteFolder(UUID folderId) {
-        super.deleteFolder(folderId, getContext());
-    }
-
-    @Transactional
-    public FolderDto updateFolder(UUID folderId, UpdateFolderDto dto) {
-        return super.updateFolder(folderId, dto, getContext());
-    }
-
-    @Transactional
-    public FolderDto restoreFolder(UUID folderId, UUID targetParentFolderId) {
-        return super.restoreFolder(folderId, targetParentFolderId, getContext());
-    }
-
-    @Transactional
-    public List<FolderDto> listFolders(UUID parentFolderId) {
-        return super.listFolders(parentFolderId, getContext());
-    }
-
-    @Transactional
-    public List<FolderTreeDto> getFolderTree() {
-        return super.getFolderTree(getContext());
     }
 }
