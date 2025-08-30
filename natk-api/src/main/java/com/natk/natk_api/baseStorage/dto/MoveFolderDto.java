@@ -1,8 +1,10 @@
 package com.natk.natk_api.baseStorage.dto;
 
+import jakarta.validation.constraints.NotNull;
+
 import java.util.UUID;
 
 public record MoveFolderDto(
         UUID newParentFolderId,
-        boolean moveToRoot // если true → переносим в корень
+        @NotNull boolean moveToRoot // если true → переносим в корень
 ) {}

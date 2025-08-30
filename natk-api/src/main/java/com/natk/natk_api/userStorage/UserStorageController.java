@@ -72,14 +72,14 @@ public class UserStorageController {
     }
 
     @PutMapping("/folders/{id}/rename")
-    public FolderDto renameFolder(@PathVariable UUID id, @RequestBody RenameFolderDto dto) {
+    public FolderDto renameFolder(@PathVariable UUID id, @Valid @RequestBody RenameFolderDto dto) {
         return userFolderService.renameFolder(id, dto);
     }
 
     @PutMapping("/folders/{id}/move")
     public FolderDto moveFolder(
             @PathVariable UUID id,
-            @RequestBody MoveFolderDto dto
+            @Valid @RequestBody MoveFolderDto dto
     ) {
         return userFolderService.moveFolder(id, dto);
     }

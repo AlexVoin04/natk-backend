@@ -6,6 +6,7 @@ import com.natk.natk_api.departmentStorage.dto.DepartmentFolderDto;
 import com.natk.natk_api.departmentStorage.service.DepartmentBaseFolderService;
 import com.natk.natk_api.userStorage.dto.CreateFolderDto;
 import com.natk.natk_api.userStorage.dto.FolderTreeDto;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -39,7 +40,7 @@ public class DepartmentStorageController {
     public DepartmentFolderDto renameFolder(
             @PathVariable UUID departmentId,
             @PathVariable UUID id,
-            @RequestBody RenameFolderDto dto
+            @Valid @RequestBody RenameFolderDto dto
     ) {
         return folderService.renameFolder(departmentId, id, dto);
     }
@@ -49,7 +50,7 @@ public class DepartmentStorageController {
     public DepartmentFolderDto moveFolder(
             @PathVariable UUID departmentId,
             @PathVariable UUID id,
-            @RequestBody MoveFolderDto dto
+            @Valid @RequestBody MoveFolderDto dto
     ) {
         return folderService.moveFolder(departmentId, id, dto);
     }
