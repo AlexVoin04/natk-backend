@@ -63,7 +63,7 @@ CREATE TABLE department_folders (
 CREATE TABLE department_files (
     id UUID PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    folder_id UUID NOT NULL,
+    folder_id UUID,
     created_by VARCHAR(100) NOT NULL,
     department_id UUID NOT NULL,
     created_at TIMESTAMP,
