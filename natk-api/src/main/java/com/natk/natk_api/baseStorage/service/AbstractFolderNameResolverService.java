@@ -4,15 +4,39 @@ import com.natk.natk_api.baseStorage.intarfece.FolderNameResolver;
 import com.natk.natk_api.exception.DuplicateNameException;
 
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public abstract class AbstractFolderNameResolverService<TFolder, TOwner>
         implements FolderNameResolver<TFolder, TOwner> {
 
-    protected abstract Set<String> getExistingFolderNames(TFolder parentFolder, TOwner owner);
+    protected abstract Set<String> getExistingFolderNames(TFolder parentFolder, TOwner owner, UUID excludeFolderId);
 
-    public String generateUniqueFolderName(String originalName, TFolder parentFolder, TOwner owner) {
+    @Override
+    public void ensureUniqueNameOrThrow(String desiredName, TFolder parentFolder, TOwner owner) {
+        ensureUniqueNameOrThrow(desiredName, parentFolder, owner, null);
+    }
+
+    @Override
+    public void ensureUniqueNameOrThrow(String desiredName, TFolder parentFolder, TOwner owner, UUID excludeFolderId) {
+        Set<String> existingNames = getExistingFolderNames(parentFolder, owner, excludeFolderId);
+        String uniqueName = generateUniqueFolderName(desiredName, existingNames);
+        if (!uniqueName.equals(desiredName)) {
+            throw new DuplicateNameException(
+                    "Folder with the same name already exists.",
+                    uniqueName
+            );
+        }
+    }
+
+    @Override
+    public String ensureUniqueName(String desiredName, TFolder parentFolder, TOwner owner, UUID excludeFolderId) {
+        Set<String> existingNames = getExistingFolderNames(parentFolder, owner, excludeFolderId);
+        return generateUniqueFolderName(desiredName, existingNames);
+    }
+
+    private String generateUniqueFolderName(String originalName, Set<String> existingNames) {
         String cleanBaseName = originalName;
 
         // Проверяем, есть ли уже суффикс (N)
@@ -21,8 +45,6 @@ public abstract class AbstractFolderNameResolverService<TFolder, TOwner>
         if (suffixMatcher.matches()) {
             cleanBaseName = suffixMatcher.group(1).trim();
         }
-
-        Set<String> existingNames = getExistingFolderNames(parentFolder, owner);
 
         // Если такого имени нет → возвращаем оригинал
         if (!existingNames.contains(originalName)) {
@@ -41,16 +63,5 @@ public abstract class AbstractFolderNameResolverService<TFolder, TOwner>
         }
 
         return cleanBaseName + "(" + (maxIndex + 1) + ")";
-    }
-
-    @Override
-    public void ensureUniqueNameOrThrow(String desiredName, TFolder parentFolder, TOwner owner) {
-        String uniqueName = generateUniqueFolderName(desiredName, parentFolder, owner);
-        if (!uniqueName.equals(desiredName)) {
-            throw new DuplicateNameException(
-                    "Folder with the same name already exists.",
-                    uniqueName
-            );
-        }
     }
 }

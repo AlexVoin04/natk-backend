@@ -27,6 +27,8 @@ public abstract class BaseFolderService<
         this.folderRepo = folderRepo;
     }
 
+    //TODO: реализовать копирование папки
+
     @Transactional
     public TDto createFolder(CreateFolderDto dto, StorageContext ctx) {
         TFolder parent = dto.parentFolderId() != null ? findFolder(dto.parentFolderId(), ctx) : null;
@@ -62,7 +64,7 @@ public abstract class BaseFolderService<
 
         TFolder parent = targetParentId != null ? findFolder(targetParentId, ctx) : null;
 
-        return applyRestore(folder, parent);
+        return applyRestore(folder, parent, ctx);
     }
 
     @Transactional
@@ -140,7 +142,7 @@ public abstract class BaseFolderService<
     protected abstract TDto applyRename(TFolder folder, RenameFolderDto dto, StorageContext ctx);
     protected abstract TDto applyMove(TFolder folder, MoveFolderDto dto, StorageContext ctx);
     protected abstract void applyDelete(TFolder folder);
-    protected abstract TDto applyRestore(TFolder folder, TFolder parent);
+    protected abstract TDto applyRestore(TFolder folder, TFolder parent, StorageContext ctx);
     protected abstract List<TDto> applyList(TFolder parent, StorageContext context);
     protected abstract List<FolderTreeDto> applyTree(StorageContext context);
 }

@@ -167,7 +167,7 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
         DepartmentContext dCtx = (DepartmentContext) context;
         DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
 
-        folderNameResolverService.ensureUniqueNameOrThrow(dto.newName(), folder.getParentFolder(), dept);
+        folderNameResolverService.ensureUniqueNameOrThrow(dto.newName(), folder.getParentFolder(), dept, folder.getId());
         folder.setName(dto.newName());
         return folderMapper.toDto(folderRepo.save(folder));
     }
@@ -178,7 +178,7 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
         DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
 
         if (dto.moveToRoot()) {
-            folderNameResolverService.ensureUniqueNameOrThrow(folder.getName(), null, dept);
+            folderNameResolverService.ensureUniqueNameOrThrow(folder.getName(), null, dept, folder.getId());
             folder.setParentFolder(null);
         } else if (dto.newParentFolderId() != null) {
             DepartmentFolderEntity newParent = folderRepo
@@ -187,7 +187,7 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
 
             validateNotMovingIntoSelfOrDescendant(folder.getId(), newParent.getId());
 
-            folderNameResolverService.ensureUniqueNameOrThrow(folder.getName(), newParent, dept);
+            folderNameResolverService.ensureUniqueNameOrThrow(folder.getName(), newParent, dept, folder.getId());
             folder.setParentFolder(newParent);
         } else {
             throw new IllegalArgumentException("No new parent folder specified");
@@ -204,10 +204,16 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
     }
 
     @Override
-    protected DepartmentFolderDto applyRestore(DepartmentFolderEntity folder, DepartmentFolderEntity parent) {
+    protected DepartmentFolderDto applyRestore(DepartmentFolderEntity folder, DepartmentFolderEntity parent, StorageContext context) {
+        DepartmentContext dCtx = (DepartmentContext) context;
+        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
         if (parent != null) {
             validateNotMovingIntoSelfOrDescendant(folder.getId(), parent.getId());
         }
+
+        String uniqueName = folderNameResolverService.ensureUniqueName(folder.getName(), parent, dept, folder.getId());
+
+        folder.setName(uniqueName);
         folder.setParentFolder(parent);
         folder.setDeleted(false);
         folder.setDeletedAt(null);

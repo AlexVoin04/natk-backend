@@ -139,7 +139,7 @@ public class UserBaseFolderService extends BaseFolderService<UserFolderEntity, U
     @Override
     protected FolderDto applyRename(UserFolderEntity folder, RenameFolderDto dto, StorageContext context) {
         UserEntity user = ((UserContext) context).user();
-        folderNameResolverService.ensureUniqueNameOrThrow(dto.newName(), folder.getParentFolder(), user);
+        folderNameResolverService.ensureUniqueNameOrThrow(dto.newName(), folder.getParentFolder(), user, folder.getId());
         folder.setName(dto.newName());
         folderRepo.save(folder);
         return userFolderMapper.toDto(folder);
@@ -150,7 +150,7 @@ public class UserBaseFolderService extends BaseFolderService<UserFolderEntity, U
         UserEntity user = ((UserContext) context).user();
 
         if (dto.moveToRoot()) {
-            folderNameResolverService.ensureUniqueNameOrThrow(folder.getName(), null, user);
+            folderNameResolverService.ensureUniqueNameOrThrow(folder.getName(), null, user, folder.getId());
             folder.setParentFolder(null);
         } else if (dto.newParentFolderId() != null) {
             UserFolderEntity newParent = folderRepo
@@ -159,7 +159,7 @@ public class UserBaseFolderService extends BaseFolderService<UserFolderEntity, U
 
             validateNotMovingIntoSelfOrDescendant(folder.getId(), newParent.getId());
 
-            folderNameResolverService.ensureUniqueNameOrThrow(folder.getName(), newParent, user);
+            folderNameResolverService.ensureUniqueNameOrThrow(folder.getName(), newParent, user, folder.getId());
             folder.setParentFolder(newParent);
         } else {
             throw new IllegalArgumentException("No new parent folder specified");
@@ -176,11 +176,15 @@ public class UserBaseFolderService extends BaseFolderService<UserFolderEntity, U
     }
 
     @Override
-    protected FolderDto applyRestore(UserFolderEntity folder, UserFolderEntity parent) {
+    protected FolderDto applyRestore(UserFolderEntity folder, UserFolderEntity parent, StorageContext context) {
+        UserEntity user = ((UserContext) context).user();
         if (parent != null) {
             validateNotMovingIntoSelfOrDescendant(folder.getId(), parent.getId());
         }
 
+        String uniqueName = folderNameResolverService.ensureUniqueName(folder.getName(), parent, user, folder.getId());
+
+        folder.setName(uniqueName);
         folder.setParentFolder(parent);
         folder.setDeleted(false);
         folder.setDeletedAt(null);
