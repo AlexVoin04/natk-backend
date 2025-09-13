@@ -73,7 +73,6 @@ public abstract class BaseFileService<TFile, TFolder,
         return applyList(folder, ctx);
     }
 
-    //TODO: не выбрасывать ошибку, если это имя этого же файла
     @Transactional
     public TDto renameFile(UUID fileId, String newName, StorageContext ctx) {
         TFile file = findFile(fileId, ctx);
@@ -81,11 +80,10 @@ public abstract class BaseFileService<TFile, TFolder,
         return applyRename(file, newName, ctx);
     }
 
-    //TODO: выбрасывать ошибку, если файл остается там же
     @Transactional
     public TDto moveFile(UUID fileId, UUID targetFolderId, Boolean moveToRoot, StorageContext ctx) {
         TFile file = findFile(fileId, ctx);
-        checkUpdateAccess(file, ctx);
+        checkRestoreAccess(file, ctx);
 
         TFolder folder = null;
         if (Boolean.FALSE.equals(moveToRoot) && targetFolderId != null) {

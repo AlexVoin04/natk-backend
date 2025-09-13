@@ -28,7 +28,7 @@ public class UserBaseFileService extends BaseFileService<UserFileEntity, UserFol
 
     private final CurrentUserService currentUserService;
     private final UserFileMapper fileMapper;
-    private final FileNameResolverService fileNameResolverService;
+    private final UserFileNameResolverService fileNameResolverService;
     private final MimeTypeValidatorService mimeTypeValidatorService;
     private final TransliterationService transliterationService;
 
@@ -37,7 +37,7 @@ public class UserBaseFileService extends BaseFileService<UserFileEntity, UserFol
             UserFolderRepository folderRepo,
             CurrentUserService currentUserService,
             UserFileMapper fileMapper,
-            FileNameResolverService fileNameResolverService,
+            UserFileNameResolverService fileNameResolverService,
             MimeTypeValidatorService mimeTypeValidatorService,
             TransliterationService transliterationService
     ) {
@@ -169,7 +169,7 @@ public class UserBaseFileService extends BaseFileService<UserFileEntity, UserFol
     @Override
     protected FileInfoDto applyRestore(UserFileEntity file, UserFolderEntity folder, StorageContext ctx) {
         UserEntity user = ((UserContext) ctx).user();
-        String unique = fileNameResolverService.generateUniqueFileName(file.getName(), folder, user);
+        String unique = fileNameResolverService.ensureUniqueName(file.getName(), folder, user, file.getId());
 
         file.setName(unique);
         file.setFolder(folder);
@@ -189,7 +189,7 @@ public class UserBaseFileService extends BaseFileService<UserFileEntity, UserFol
     @Override
     protected FileInfoDto applyRename(UserFileEntity file, String newName, StorageContext ctx) {
         UserEntity user = ((UserContext) ctx).user();
-        fileNameResolverService.ensureUniqueNameOrThrow(newName, file.getFolder(), user);
+        fileNameResolverService.ensureUniqueNameOrThrow(newName, file.getFolder(), user, file.getId());
         file.setName(newName);
         return fileMapper.toDto(fileRepo.save(file));
     }
@@ -197,7 +197,7 @@ public class UserBaseFileService extends BaseFileService<UserFileEntity, UserFol
     @Override
     protected FileInfoDto applyMove(UserFileEntity file, UserFolderEntity newFolder, StorageContext ctx) {
         UserEntity user = ((UserContext) ctx).user();
-        fileNameResolverService.ensureUniqueNameOrThrow(file.getName(), newFolder, user);
+        fileNameResolverService.ensureUniqueNameOrThrow(file.getName(), newFolder, user, file.getId());
         file.setFolder(newFolder);
         return fileMapper.toDto(fileRepo.save(file));
     }
@@ -205,7 +205,7 @@ public class UserBaseFileService extends BaseFileService<UserFileEntity, UserFol
     @Override
     protected FileInfoDto applyCopy(UserFileEntity file, UserFolderEntity folder, StorageContext ctx) {
         UserEntity user = ((UserContext) ctx).user();
-        String unique = fileNameResolverService.generateUniqueFileName(file.getName(), folder, user);
+        String unique = fileNameResolverService.ensureUniqueName(file.getName(), folder, user, null);
 
         UserFileEntity copy = new UserFileEntity();
         copy.setName(unique);

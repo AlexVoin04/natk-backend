@@ -1,25 +1,27 @@
 package com.natk.natk_api.departmentStorage;
 
+import com.natk.natk_api.baseStorage.dto.MoveFileDto;
 import com.natk.natk_api.baseStorage.dto.MoveFolderDto;
+import com.natk.natk_api.baseStorage.dto.RenameFileDto;
 import com.natk.natk_api.baseStorage.dto.RenameFolderDto;
+import com.natk.natk_api.departmentStorage.dto.DepartmentFileInfoDto;
 import com.natk.natk_api.departmentStorage.dto.DepartmentFolderDto;
+import com.natk.natk_api.departmentStorage.service.DepartmentBaseFileService;
 import com.natk.natk_api.departmentStorage.service.DepartmentBaseFolderService;
 import com.natk.natk_api.userStorage.dto.CreateFolderDto;
+import com.natk.natk_api.userStorage.dto.FileDownloadDto;
 import com.natk.natk_api.userStorage.dto.FolderTreeDto;
+import com.natk.natk_api.userStorage.dto.UploadFileDto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
@@ -28,6 +30,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class DepartmentStorageController {
     private final DepartmentBaseFolderService folderService;
+    private final DepartmentBaseFileService departmentFileService;
 
     @PostMapping("/folders")
     @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'ACCESS')")
@@ -83,4 +86,102 @@ public class DepartmentStorageController {
     public List<FolderTreeDto> getFolderTree(@PathVariable UUID departmentId) {
         return folderService.getFolderTree(departmentId);
     }
+
+    @PostMapping(value = "/files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'ACCESS')")
+    public DepartmentFileInfoDto uploadFile(
+            @PathVariable UUID departmentId,
+            @RequestParam("name") String name,
+            @RequestParam(value = "folderId", required = false) UUID folderId,
+            @RequestPart("fileData") MultipartFile fileData
+    ) throws IOException {
+        byte[] bytes = fileData.getBytes();
+        UploadFileDto dto = new UploadFileDto(name, folderId, bytes);
+        return departmentFileService.uploadFile(dto, departmentId);
+    }
+
+    @GetMapping("/files/{id}")
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'ACCESS')")
+    public DepartmentFileInfoDto getFileInfo(
+            @PathVariable UUID departmentId,
+            @PathVariable UUID id
+    ) {
+        return departmentFileService.getFile(id, departmentId);
+    }
+
+    @DeleteMapping("/files/{id}")
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'ACCESS')")
+    public ResponseEntity<?> deleteFile(
+            @PathVariable UUID departmentId,
+            @PathVariable UUID id
+    ) {
+        departmentFileService.deleteFile(id, departmentId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/files/{id}/restore")
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'MANAGE')")
+    public DepartmentFileInfoDto restoreFile(
+            @PathVariable UUID departmentId,
+            @PathVariable UUID id,
+            @RequestParam(required = false) UUID targetFolderId
+    ) {
+        return departmentFileService.restoreFile(id, targetFolderId, departmentId);
+    }
+
+    @GetMapping("/files")
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'ACCESS')")
+    public List<DepartmentFileInfoDto> listFiles(
+            @PathVariable UUID departmentId,
+            @RequestParam(required = false) UUID folderId
+    ) {
+        return departmentFileService.listFiles(folderId, departmentId);
+    }
+
+    @PutMapping("/files/{id}/rename")
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'ACCESS')")
+    public DepartmentFileInfoDto renameFile(
+            @PathVariable UUID departmentId,
+            @PathVariable UUID id,
+            @Valid @RequestBody RenameFileDto dto
+    ) {
+        return departmentFileService.renameFile(id, dto.newName(), departmentId);
+    }
+
+    @PutMapping("/files/{id}/move")
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'MANAGE')")
+    public DepartmentFileInfoDto moveFile(
+            @PathVariable UUID departmentId,
+            @PathVariable UUID id,
+            @Valid @RequestBody MoveFileDto dto
+    ) {
+        return departmentFileService.moveFile(id, dto.newFolderId(), dto.moveToRoot(), departmentId);
+    }
+
+    @GetMapping("/files/{id}/download")
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'ACCESS')")
+    public ResponseEntity<byte[]> downloadFile(
+            @PathVariable UUID departmentId,
+            @PathVariable UUID id
+    ) {
+        FileDownloadDto dto = departmentFileService.getFileDownloadData(id, departmentId);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + dto.translitName() + "\"; filename*=UTF-8''" + dto.encodedName())
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(dto.fileData());
+    }
+
+    @PostMapping("/files/{id}/copy")
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'MANAGE')")
+    public DepartmentFileInfoDto copyFile(
+            @PathVariable UUID departmentId,
+            @PathVariable UUID id,
+            @RequestParam(required = false) UUID targetFolderId
+    ) {
+        return departmentFileService.copyFile(id, targetFolderId, departmentId);
+    }
+
+
 }

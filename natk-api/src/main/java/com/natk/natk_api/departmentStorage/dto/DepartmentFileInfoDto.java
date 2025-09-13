@@ -1,17 +1,18 @@
-package com.natk.natk_api.userStorage.dto;
+package com.natk.natk_api.departmentStorage.dto;
 
 import com.natk.natk_api.baseStorage.intarfece.BaseFileDto;
 
 import java.time.Instant;
 import java.util.UUID;
 
-public record FileInfoDto(
+public record DepartmentFileInfoDto(
         UUID id,
         String name,
         String fileType,
         Instant createdAt,
-        FolderDto folder,
+        DepartmentFolderDto folder,
         boolean isDeleted,
         Instant deletedAt,
-        String path
+        String path,
+        String user
 ) implements BaseFileDto {}
