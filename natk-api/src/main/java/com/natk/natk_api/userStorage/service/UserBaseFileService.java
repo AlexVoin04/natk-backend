@@ -5,7 +5,6 @@ import com.natk.natk_api.baseStorage.context.UserContext;
 import com.natk.natk_api.baseStorage.service.BaseFileService;
 import com.natk.natk_api.userStorage.dto.FileDownloadDto;
 import com.natk.natk_api.userStorage.dto.FileInfoDto;
-import com.natk.natk_api.userStorage.dto.UpdateFileDto;
 import com.natk.natk_api.userStorage.dto.UploadFileDto;
 import com.natk.natk_api.userStorage.mapper.UserFileMapper;
 import com.natk.natk_api.userStorage.model.UserFileEntity;
@@ -80,13 +79,18 @@ public class UserBaseFileService extends BaseFileService<UserFileEntity, UserFol
     }
 
     @Transactional
-    public List<FileInfoDto> listFiles(UUID folderId, UUID targetFolderId){
+    public List<FileInfoDto> listFiles(UUID folderId){
         return super.listFiles(folderId, getContext());
     }
 
     @Transactional
-    public FileInfoDto updateFile(UUID fileId, UpdateFileDto dto){
-        return super.updateFile(fileId, dto, getContext());
+    public FileInfoDto renameFile(UUID fileId, String newName) {
+        return super.renameFile(fileId, newName, getContext());
+    }
+
+    @Transactional
+    public FileInfoDto moveFile(UUID fileId, UUID newFolderId, Boolean moveToRoot) {
+        return super.moveFile(fileId, newFolderId, moveToRoot, getContext());
     }
 
     @Transactional
@@ -183,19 +187,18 @@ public class UserBaseFileService extends BaseFileService<UserFileEntity, UserFol
     }
 
     @Override
-    protected FileInfoDto applyUpdate(UserFileEntity file, UpdateFileDto dto, StorageContext ctx) {
+    protected FileInfoDto applyRename(UserFileEntity file, String newName, StorageContext ctx) {
         UserEntity user = ((UserContext) ctx).user();
-        if (dto.newName() != null && !dto.newName().isBlank()) {
-            fileNameResolverService.ensureUniqueNameOrThrow(dto.newName(), file.getFolder(), user);
-            file.setName(dto.newName());
-        }
+        fileNameResolverService.ensureUniqueNameOrThrow(newName, file.getFolder(), user);
+        file.setName(newName);
+        return fileMapper.toDto(fileRepo.save(file));
+    }
 
-        //TODO: проверять имя
-        if (Boolean.TRUE.equals(dto.moveToRoot())) {
-            file.setFolder(null);
-        } else if (dto.newFolderId() != null) {
-            file.setFolder(findFolder(dto.newFolderId(), ctx));
-        }
+    @Override
+    protected FileInfoDto applyMove(UserFileEntity file, UserFolderEntity newFolder, StorageContext ctx) {
+        UserEntity user = ((UserContext) ctx).user();
+        fileNameResolverService.ensureUniqueNameOrThrow(file.getName(), newFolder, user);
+        file.setFolder(newFolder);
         return fileMapper.toDto(fileRepo.save(file));
     }
 

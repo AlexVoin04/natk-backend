@@ -1,6 +1,8 @@
 package com.natk.natk_api.userStorage;
 
+import com.natk.natk_api.baseStorage.dto.MoveFileDto;
 import com.natk.natk_api.baseStorage.dto.MoveFolderDto;
+import com.natk.natk_api.baseStorage.dto.RenameFileDto;
 import com.natk.natk_api.baseStorage.dto.RenameFolderDto;
 import com.natk.natk_api.llms.dto.QuestionRequestDto;
 import com.natk.natk_api.llms.dto.QuestionResponseDto;
@@ -14,8 +16,8 @@ import com.natk.natk_api.userStorage.dto.FolderDto;
 import com.natk.natk_api.userStorage.dto.FolderTreeDto;
 import com.natk.natk_api.userStorage.dto.UpdateFileDto;
 import com.natk.natk_api.userStorage.dto.UploadFileDto;
+import com.natk.natk_api.userStorage.service.UserBaseFileService;
 import com.natk.natk_api.userStorage.service.UserBaseFolderService;
-import com.natk.natk_api.userStorage.service.UserFileService;
 import com.natk.natk_api.userStorage.service.UserStorageService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -42,7 +44,7 @@ import java.util.UUID;
 @RequestMapping("/storage")
 @RequiredArgsConstructor
 public class UserStorageController {
-    private final UserFileService userFileService;
+    private final UserBaseFileService userFileService;
     private final UserBaseFolderService userFolderService;
     private final UserStorageService userStorageService;
     private final QuestionGenerationService questionGenerationService;
@@ -124,9 +126,14 @@ public class UserStorageController {
         return userFileService.listFiles(folderId);
     }
 
-    @PutMapping("/files/{id}")
-    public FileInfoDto updateFile(@PathVariable UUID id, @RequestBody UpdateFileDto dto) {
-        return userFileService.updateFile(id, dto);
+    @PutMapping("/files/{id}/rename")
+    public FileInfoDto renameFile(@PathVariable UUID id, @Valid @RequestBody RenameFileDto newName) {
+        return userFileService.renameFile(id, newName.newName());
+    }
+
+    @PutMapping("/files/{id}/move")
+    public FileInfoDto moveFile(@PathVariable UUID id, @RequestBody MoveFileDto dto) {
+        return userFileService.moveFile(id, dto.newFolderId(), dto.moveToRoot());
     }
 
     @GetMapping("/files/{id}/download")

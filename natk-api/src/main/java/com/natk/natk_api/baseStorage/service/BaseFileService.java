@@ -2,7 +2,6 @@ package com.natk.natk_api.baseStorage.service;
 
 import com.natk.natk_api.baseStorage.context.StorageContext;
 import com.natk.natk_api.userStorage.dto.FileDownloadDto;
-import com.natk.natk_api.userStorage.dto.UpdateFileDto;
 import com.natk.natk_api.userStorage.dto.UploadFileDto;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.transaction.annotation.Transactional;
@@ -74,11 +73,26 @@ public abstract class BaseFileService<TFile, TFolder,
         return applyList(folder, ctx);
     }
 
+    //TODO: не выбрасывать ошибку, если это имя этого же файла
     @Transactional
-    public TDto updateFile(UUID fileId, UpdateFileDto dto, StorageContext ctx) {
+    public TDto renameFile(UUID fileId, String newName, StorageContext ctx) {
         TFile file = findFile(fileId, ctx);
         checkUpdateAccess(file, ctx);
-        return applyUpdate(file, dto, ctx);
+        return applyRename(file, newName, ctx);
+    }
+
+    //TODO: выбрасывать ошибку, если файл остается там же
+    @Transactional
+    public TDto moveFile(UUID fileId, UUID targetFolderId, Boolean moveToRoot, StorageContext ctx) {
+        TFile file = findFile(fileId, ctx);
+        checkUpdateAccess(file, ctx);
+
+        TFolder folder = null;
+        if (Boolean.FALSE.equals(moveToRoot) && targetFolderId != null) {
+            folder = findFolder(targetFolderId, ctx);
+        }
+
+        return applyMove(file, folder, ctx);
     }
 
     @Transactional
@@ -101,12 +115,13 @@ public abstract class BaseFileService<TFile, TFolder,
     protected abstract void checkRestoreAccess(TFile file, StorageContext ctx);
     protected abstract void checkUpdateAccess(TFile file, StorageContext ctx);
 
+    protected abstract TDto applyMove(TFile file, TFolder newFolder, StorageContext ctx);
+    protected abstract TDto applyRename(TFile file, String newName, StorageContext ctx);
     protected abstract TDto applyUploadFile(UploadFileDto dto, TFolder folder, StorageContext ctx);
     protected abstract FileDownloadDto applyDownload(TFile file, StorageContext ctx);
     protected abstract void applyDelete(TFile file);
     protected abstract TDto applyRestore(TFile file, TFolder folder, StorageContext ctx);
     protected abstract List<TDto> applyList(TFolder folder, StorageContext ctx);
-    protected abstract TDto applyUpdate(TFile file, UpdateFileDto dto, StorageContext ctx);
     protected abstract TDto applyCopy(TFile file, TFolder folder, StorageContext ctx);
 
     protected abstract TDto mapToDto(TFile file);
