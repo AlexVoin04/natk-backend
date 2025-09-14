@@ -22,4 +22,6 @@ public interface DepartmentFileRepository extends JpaRepository<DepartmentFileEn
     boolean existsByDepartmentAndFolderAndNameAndIsDeletedFalse(DepartmentEntity department, DepartmentFileEntity folder, String name);
 
     List<DepartmentFileEntity> findByDepartmentAndFolderIsNullAndIsDeletedFalse(DepartmentEntity department);
+
+    List<DepartmentFileEntity> findByDepartmentAndIsDeletedTrueOrderByDeletedAtDesc(DepartmentEntity department);
 }

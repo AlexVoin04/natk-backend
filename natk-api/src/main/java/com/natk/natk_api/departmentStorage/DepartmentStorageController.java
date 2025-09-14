@@ -4,14 +4,18 @@ import com.natk.natk_api.baseStorage.dto.MoveFileDto;
 import com.natk.natk_api.baseStorage.dto.MoveFolderDto;
 import com.natk.natk_api.baseStorage.dto.RenameFileDto;
 import com.natk.natk_api.baseStorage.dto.RenameFolderDto;
+import com.natk.natk_api.departmentStorage.dto.DepartmentDeletedItemDto;
 import com.natk.natk_api.departmentStorage.dto.DepartmentFileInfoDto;
 import com.natk.natk_api.departmentStorage.dto.DepartmentFolderDto;
+import com.natk.natk_api.departmentStorage.dto.DepartmentStorageItemDto;
 import com.natk.natk_api.departmentStorage.service.DepartmentBaseFileService;
 import com.natk.natk_api.departmentStorage.service.DepartmentBaseFolderService;
-import com.natk.natk_api.userStorage.dto.CreateFolderDto;
-import com.natk.natk_api.userStorage.dto.FileDownloadDto;
-import com.natk.natk_api.userStorage.dto.FolderTreeDto;
-import com.natk.natk_api.userStorage.dto.UploadFileDto;
+import com.natk.natk_api.baseStorage.dto.CreateFolderDto;
+import com.natk.natk_api.baseStorage.dto.FileDownloadDto;
+import com.natk.natk_api.baseStorage.dto.FolderTreeDto;
+import com.natk.natk_api.baseStorage.dto.UploadFileDto;
+import com.natk.natk_api.departmentStorage.service.DepartmentBaseStorageService;
+import com.natk.natk_api.userStorage.dto.FolderContentResponseDto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -31,6 +35,7 @@ import java.util.UUID;
 public class DepartmentStorageController {
     private final DepartmentBaseFolderService folderService;
     private final DepartmentBaseFileService departmentFileService;
+    private final DepartmentBaseStorageService departmentStorageService;
 
     @PostMapping("/folders")
     @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'ACCESS')")
@@ -183,5 +188,20 @@ public class DepartmentStorageController {
         return departmentFileService.copyFile(id, targetFolderId, departmentId);
     }
 
+    @GetMapping("/items")
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'ACCESS')")
+    public FolderContentResponseDto<DepartmentStorageItemDto> listFolderItems(
+            @PathVariable UUID departmentId,
+            @RequestParam(required = false) UUID folderId
+    ) {
+        return departmentStorageService.getStorageItems(folderId, departmentId);
+    }
 
+    @GetMapping("/bin")
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'MANAGE')")
+    public List<DepartmentDeletedItemDto> getBinItems(
+            @PathVariable UUID departmentId
+    ) {
+        return departmentStorageService.getDeletedItems(departmentId);
+    }
 }

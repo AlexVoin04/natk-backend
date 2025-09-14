@@ -1,8 +1,8 @@
 package com.natk.natk_api.baseStorage.service;
 
 import com.natk.natk_api.baseStorage.context.StorageContext;
-import com.natk.natk_api.userStorage.dto.FileDownloadDto;
-import com.natk.natk_api.userStorage.dto.UploadFileDto;
+import com.natk.natk_api.baseStorage.dto.FileDownloadDto;
+import com.natk.natk_api.baseStorage.dto.UploadFileDto;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -102,7 +102,6 @@ public abstract class BaseFileService<TFile, TFolder,
         return applyCopy(file, folder, ctx);
     }
 
-    // ==== abstract hooks ====
     protected abstract TFile findFile(UUID id, StorageContext ctx);
     protected abstract TFile findDeletedFile(UUID id, StorageContext ctx);
     protected abstract TFolder findFolder(UUID id, StorageContext ctx);

@@ -1,4 +1,4 @@
-package com.natk.natk_api.userStorage.dto;
+package com.natk.natk_api.baseStorage.dto;
 
 import jakarta.annotation.Nullable;
 

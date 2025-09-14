@@ -1,6 +1,6 @@
 package com.natk.natk_api.userStorage;
 
-import com.natk.natk_api.userStorage.dto.CreateFolderDto;
+import com.natk.natk_api.baseStorage.dto.CreateFolderDto;
 import com.natk.natk_api.userStorage.dto.FolderDto;
 import com.natk.natk_api.userStorage.dto.UpdateFolderDto;
 import com.natk.natk_api.userStorage.model.UserFolderEntity;

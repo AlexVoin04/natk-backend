@@ -5,8 +5,8 @@ import com.natk.natk_api.baseStorage.dto.MoveFolderDto;
 import com.natk.natk_api.baseStorage.dto.RenameFolderDto;
 import com.natk.natk_api.baseStorage.intarfece.BaseFolderDto;
 import com.natk.natk_api.baseStorage.intarfece.FolderAncestryRepository;
-import com.natk.natk_api.userStorage.dto.CreateFolderDto;
-import com.natk.natk_api.userStorage.dto.FolderTreeDto;
+import com.natk.natk_api.baseStorage.dto.CreateFolderDto;
+import com.natk.natk_api.baseStorage.dto.FolderTreeDto;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -127,7 +127,6 @@ public abstract class BaseFolderService<
         }
     }
 
-    // ==== abstract hooks ====
     protected abstract TFolder findFolder(UUID id, StorageContext ctx);
     protected abstract TFolder findDeletedFolder(UUID id, StorageContext ctx);
     protected abstract TFolder buildNewFolder(String name, TFolder parent, StorageContext ctx);

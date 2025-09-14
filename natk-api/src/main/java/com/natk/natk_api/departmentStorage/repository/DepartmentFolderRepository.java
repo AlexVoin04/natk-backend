@@ -22,6 +22,7 @@ public interface DepartmentFolderRepository extends JpaRepository<DepartmentFold
     boolean existsByDepartmentAndParentFolderIsNullAndNameAndIsDeletedFalse(DepartmentEntity dept, String name);
 
     List<DepartmentFolderEntity> findByDepartmentAndParentFolderIsNullAndIsDeletedFalse(DepartmentEntity dept);
+    List<DepartmentFolderEntity> findByDepartmentAndIsDeletedTrueOrderByDeletedAtDesc(DepartmentEntity department);
 
     @Query(value = """
         WITH RECURSIVE parents(id, parent_folder_id) AS (

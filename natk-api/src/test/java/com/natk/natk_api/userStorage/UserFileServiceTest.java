@@ -2,7 +2,7 @@ package com.natk.natk_api.userStorage;
 
 
 import com.natk.natk_api.userStorage.dto.FileInfoDto;
-import com.natk.natk_api.userStorage.dto.UploadFileDto;
+import com.natk.natk_api.baseStorage.dto.UploadFileDto;
 import com.natk.natk_api.userStorage.model.UserFileEntity;
 import com.natk.natk_api.userStorage.model.UserFolderEntity;
 import com.natk.natk_api.userStorage.repository.UserFileRepository;

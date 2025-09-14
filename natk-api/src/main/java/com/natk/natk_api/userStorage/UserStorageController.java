@@ -7,17 +7,18 @@ import com.natk.natk_api.baseStorage.dto.RenameFolderDto;
 import com.natk.natk_api.llms.dto.QuestionRequestDto;
 import com.natk.natk_api.llms.dto.QuestionResponseDto;
 import com.natk.natk_api.llms.service.QuestionGenerationService;
-import com.natk.natk_api.userStorage.dto.CreateFolderDto;
-import com.natk.natk_api.userStorage.dto.DeletedItemDto;
-import com.natk.natk_api.userStorage.dto.FileDownloadDto;
+import com.natk.natk_api.baseStorage.dto.CreateFolderDto;
+import com.natk.natk_api.baseStorage.dto.FileDownloadDto;
+import com.natk.natk_api.baseStorage.dto.FolderTreeDto;
+import com.natk.natk_api.baseStorage.dto.UploadFileDto;
 import com.natk.natk_api.userStorage.dto.FileInfoDto;
 import com.natk.natk_api.userStorage.dto.FolderContentResponseDto;
 import com.natk.natk_api.userStorage.dto.FolderDto;
-import com.natk.natk_api.userStorage.dto.FolderTreeDto;
-import com.natk.natk_api.userStorage.dto.UploadFileDto;
+import com.natk.natk_api.userStorage.dto.UserDeletedItemDto;
+import com.natk.natk_api.userStorage.dto.UserStorageItemDto;
 import com.natk.natk_api.userStorage.service.UserBaseFileService;
 import com.natk.natk_api.userStorage.service.UserBaseFolderService;
-import com.natk.natk_api.userStorage.service.UserStorageService;
+import com.natk.natk_api.userStorage.service.UserBaseStorageService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -45,7 +46,7 @@ import java.util.UUID;
 public class UserStorageController {
     private final UserBaseFileService userFileService;
     private final UserBaseFolderService userFolderService;
-    private final UserStorageService userStorageService;
+    private final UserBaseStorageService userStorageService;
     private final QuestionGenerationService questionGenerationService;
 
     @PostMapping("/folders")
@@ -157,12 +158,12 @@ public class UserStorageController {
     }
 
     @GetMapping("/items")
-    public FolderContentResponseDto listFolderItems(@RequestParam(required = false) UUID folderId) {
+    public FolderContentResponseDto<UserStorageItemDto> listFolderItems(@RequestParam(required = false) UUID folderId) {
         return userStorageService.getStorageItems(folderId);
     }
 
     @GetMapping("/bin")
-    public List<DeletedItemDto> getBinItems() {
+    public List<UserDeletedItemDto> getBinItems() {
         return userStorageService.getDeletedItems();
     }
 }
