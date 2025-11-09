@@ -40,7 +40,7 @@ This will:
 ### If you want to run only specific services
 Replace `db natk-api natk-ai` with the services you need to run:
 ```shell
-docker compose -f docker-compose.dev.yml up --no-deps db natk-api natk-ai
+docker compose -f docker-compose.yml up --no-deps db natk-api natk-ai
 ```
 
 ___
