@@ -43,4 +43,22 @@ public class UserEntity {
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
     private List<RoleEntity> roles = new ArrayList<>();
+
+    public String getShortFio() {
+        StringBuilder sb = new StringBuilder();
+
+        if (surname != null && !surname.isBlank()) {
+            sb.append(surname);
+        }
+
+        if (name != null && !name.isBlank()) {
+            sb.append(" ").append(name.charAt(0)).append(".");
+        }
+
+        if (patronymic != null && !patronymic.isBlank()) {
+            sb.append(patronymic.charAt(0)).append(".");
+        }
+
+        return sb.toString();
+    }
 }

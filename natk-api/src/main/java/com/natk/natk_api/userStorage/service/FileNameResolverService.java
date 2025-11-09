@@ -1,5 +1,6 @@
 package com.natk.natk_api.userStorage.service;
 
+import com.natk.natk_api.exception.DuplicateNameException;
 import com.natk.natk_api.userStorage.model.UserFileEntity;
 import com.natk.natk_api.userStorage.model.UserFolderEntity;
 import com.natk.natk_api.userStorage.repository.UserFileRepository;
@@ -72,7 +73,10 @@ public class FileNameResolverService {
     public void ensureUniqueNameOrThrow(String desiredName, UserFolderEntity folder, UserEntity user) {
         String uniqueName = generateUniqueFileName(desiredName, folder, user);
         if (!uniqueName.equals(desiredName)) {
-            throw new IllegalArgumentException("File with the same name already exists. Suggested name: " + uniqueName);
+            throw new DuplicateNameException(
+                    "File with the same name already exists.",
+                    uniqueName
+            );
         }
     }
 }

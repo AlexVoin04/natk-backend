@@ -1,6 +1,6 @@
 package com.natk.natk_api.userStorage;
 
-import com.natk.natk_api.userStorage.dto.CreateFolderDto;
+import com.natk.natk_api.baseStorage.dto.CreateFolderDto;
 import com.natk.natk_api.userStorage.dto.FolderDto;
 import com.natk.natk_api.userStorage.dto.UpdateFolderDto;
 import com.natk.natk_api.userStorage.model.UserFolderEntity;
@@ -86,7 +86,7 @@ class UserFolderServiceTest {
 
     @Test
     void updateFolder_success() {
-        UpdateFolderDto dto = new UpdateFolderDto("new", null);
+        UpdateFolderDto dto = new UpdateFolderDto("new", null, false);
         UserFolderEntity folder = new UserFolderEntity();
         folder.setId(folderId);
         folder.setUser(user);

@@ -1,9 +1,9 @@
 package com.natk.natk_api.userStorage.service;
 
-import com.natk.natk_api.userStorage.dto.FileDownloadDto;
+import com.natk.natk_api.baseStorage.dto.FileDownloadDto;
 import com.natk.natk_api.userStorage.dto.FileInfoDto;
 import com.natk.natk_api.userStorage.dto.UpdateFileDto;
-import com.natk.natk_api.userStorage.dto.UploadFileDto;
+import com.natk.natk_api.baseStorage.dto.UploadFileDto;
 import com.natk.natk_api.userStorage.mapper.UserFileMapper;
 import com.natk.natk_api.userStorage.model.UserFileEntity;
 import com.natk.natk_api.userStorage.model.UserFolderEntity;
@@ -32,7 +32,6 @@ public class UserFileService {
     private final TransliterationService transliterationService;
     private final FileNameResolverService fileNameResolverService;
     private final MimeTypeValidatorService mimeTypeValidatorService;
-
 
     @Transactional
     public FileInfoDto uploadFile(UploadFileDto dto) {

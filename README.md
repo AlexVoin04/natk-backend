@@ -55,7 +55,7 @@ docker build -t natk-auth:0.0.1 ./natk-auth
 
 🌐 Build natk-api image
 ```shell
-docker build -t natk-api:0.0.5 ./natk-api
+docker build -t natk-api:0.0.9 ./natk-api
 ```
 
 📄 Build natk-pdf image
@@ -65,7 +65,7 @@ docker build -t natk-pdf:0.0.1 ./natk-pdf
 
 🤖 Build natk-ai image
 ```shell
-docker build -t natk-ai:0.0.1 ./natk-ai
+docker build -t natk-ai:0.0.3 ./natk-ai
 ```
 
 ▶️ Run the containers

@@ -1,21 +1,24 @@
 package com.natk.natk_api.userStorage;
 
+import com.natk.natk_api.baseStorage.dto.MoveFileDto;
+import com.natk.natk_api.baseStorage.dto.MoveFolderDto;
+import com.natk.natk_api.baseStorage.dto.RenameFileDto;
+import com.natk.natk_api.baseStorage.dto.RenameFolderDto;
 import com.natk.natk_api.llms.dto.QuestionRequestDto;
 import com.natk.natk_api.llms.dto.QuestionResponseDto;
 import com.natk.natk_api.llms.service.QuestionGenerationService;
-import com.natk.natk_api.userStorage.dto.CreateFolderDto;
-import com.natk.natk_api.userStorage.dto.DeletedItemDto;
-import com.natk.natk_api.userStorage.dto.FileDownloadDto;
+import com.natk.natk_api.baseStorage.dto.CreateFolderDto;
+import com.natk.natk_api.baseStorage.dto.FileDownloadDto;
+import com.natk.natk_api.baseStorage.dto.FolderTreeDto;
+import com.natk.natk_api.baseStorage.dto.UploadFileDto;
 import com.natk.natk_api.userStorage.dto.FileInfoDto;
 import com.natk.natk_api.userStorage.dto.FolderContentResponseDto;
 import com.natk.natk_api.userStorage.dto.FolderDto;
-import com.natk.natk_api.userStorage.dto.FolderTreeDto;
-import com.natk.natk_api.userStorage.dto.UpdateFileDto;
-import com.natk.natk_api.userStorage.dto.UpdateFolderDto;
-import com.natk.natk_api.userStorage.dto.UploadFileDto;
-import com.natk.natk_api.userStorage.service.UserFileService;
-import com.natk.natk_api.userStorage.service.UserFolderService;
-import com.natk.natk_api.userStorage.service.UserStorageService;
+import com.natk.natk_api.userStorage.dto.UserDeletedItemDto;
+import com.natk.natk_api.userStorage.dto.UserStorageItemDto;
+import com.natk.natk_api.userStorage.service.UserBaseFileService;
+import com.natk.natk_api.userStorage.service.UserBaseFolderService;
+import com.natk.natk_api.userStorage.service.UserBaseStorageService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -41,9 +44,9 @@ import java.util.UUID;
 @RequestMapping("/storage")
 @RequiredArgsConstructor
 public class UserStorageController {
-    private final UserFileService userFileService;
-    private final UserFolderService userFolderService;
-    private final UserStorageService userStorageService;
+    private final UserBaseFileService userFileService;
+    private final UserBaseFolderService userFolderService;
+    private final UserBaseStorageService userStorageService;
     private final QuestionGenerationService questionGenerationService;
 
     @PostMapping("/folders")
@@ -63,7 +66,6 @@ public class UserStorageController {
             @RequestParam(required = false) UUID targetParentFolderId
     ) {
         return userFolderService.restoreFolder(id, targetParentFolderId);
-
     }
 
     @GetMapping("/folders")
@@ -71,9 +73,17 @@ public class UserStorageController {
         return userFolderService.listFolders(parentId);
     }
 
-    @PutMapping("/folders/{id}")
-    public FolderDto updateFolder(@PathVariable UUID id, @RequestBody UpdateFolderDto dto) {
-        return userFolderService.updateFolder(id, dto);
+    @PutMapping("/folders/{id}/rename")
+    public FolderDto renameFolder(@PathVariable UUID id, @Valid @RequestBody RenameFolderDto dto) {
+        return userFolderService.renameFolder(id, dto);
+    }
+
+    @PutMapping("/folders/{id}/move")
+    public FolderDto moveFolder(
+            @PathVariable UUID id,
+            @Valid @RequestBody MoveFolderDto dto
+    ) {
+        return userFolderService.moveFolder(id, dto);
     }
 
     @GetMapping("/folders/tree")
@@ -116,9 +126,14 @@ public class UserStorageController {
         return userFileService.listFiles(folderId);
     }
 
-    @PutMapping("/files/{id}")
-    public FileInfoDto updateFile(@PathVariable UUID id, @RequestBody UpdateFileDto dto) {
-        return userFileService.updateFile(id, dto);
+    @PutMapping("/files/{id}/rename")
+    public FileInfoDto renameFile(@PathVariable UUID id, @Valid @RequestBody RenameFileDto newName) {
+        return userFileService.renameFile(id, newName.newName());
+    }
+
+    @PutMapping("/files/{id}/move")
+    public FileInfoDto moveFile(@PathVariable UUID id, @RequestBody MoveFileDto dto) {
+        return userFileService.moveFile(id, dto.newFolderId(), dto.moveToRoot());
     }
 
     @GetMapping("/files/{id}/download")
@@ -143,12 +158,12 @@ public class UserStorageController {
     }
 
     @GetMapping("/items")
-    public FolderContentResponseDto listFolderItems(@RequestParam(required = false) UUID folderId) {
+    public FolderContentResponseDto<UserStorageItemDto> listFolderItems(@RequestParam(required = false) UUID folderId) {
         return userStorageService.getStorageItems(folderId);
     }
 
     @GetMapping("/bin")
-    public List<DeletedItemDto> getBinItems() {
+    public List<UserDeletedItemDto> getBinItems() {
         return userStorageService.getDeletedItems();
     }
 }

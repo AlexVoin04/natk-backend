@@ -1,8 +1,8 @@
 package com.natk.natk_api.userStorage.service;
 
-import com.natk.natk_api.userStorage.dto.CreateFolderDto;
+import com.natk.natk_api.baseStorage.dto.CreateFolderDto;
 import com.natk.natk_api.userStorage.dto.FolderDto;
-import com.natk.natk_api.userStorage.dto.FolderTreeDto;
+import com.natk.natk_api.baseStorage.dto.FolderTreeDto;
 import com.natk.natk_api.userStorage.dto.UpdateFolderDto;
 import com.natk.natk_api.userStorage.mapper.UserFolderMapper;
 import com.natk.natk_api.userStorage.model.UserFolderEntity;
@@ -27,7 +27,7 @@ public class UserFolderService {
     private final UserFolderRepository folderRepo;
     private final CurrentUserService currentUserService;
     private final UserFolderMapper userFolderMapper;
-    private final FolderNameResolverService folderNameResolverService;
+    private final UserFolderNameResolverService folderNameResolverService;
 
     @Transactional
     public FolderDto createFolder(CreateFolderDto dto) {
@@ -107,7 +107,7 @@ public class UserFolderService {
     }
 
     @Transactional
-    public FolderDto  updateFolder(UUID folderId, UpdateFolderDto dto) {
+    public FolderDto updateFolder(UUID folderId, UpdateFolderDto dto) {
         UserEntity user = currentUserService.getCurrentUser();
         UserFolderEntity folder = folderRepo.findByIdAndUserAndIsDeletedFalse(folderId, user)
                 .orElseThrow(() -> new AccessDeniedException("Folder not found or not owned by user or deleted"));
