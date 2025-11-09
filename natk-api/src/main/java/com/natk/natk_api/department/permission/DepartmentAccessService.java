@@ -65,7 +65,7 @@ public class DepartmentAccessService {
      * - ADMIN / DEPARTMENT_HEAD → доступ всегда
      * - иначе ищем явный доступ в department_folder_access
      */
-    private boolean hasAnyAccess(UserEntity user, UUID departmentId) {
+    public boolean hasAnyAccess(UserEntity user, UUID departmentId) {
         return accessDepartmentRepo.existsByUserIdAndDepartmentId(user.getId(), departmentId)
                 || canManage(user, departmentId);
     }

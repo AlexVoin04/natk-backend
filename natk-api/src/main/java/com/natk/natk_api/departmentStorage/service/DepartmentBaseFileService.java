@@ -148,8 +148,14 @@ public class DepartmentBaseFileService extends BaseFileService<
     @Override
     protected void checkUploadAccess(DepartmentFolderEntity folder, StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
-        if (!folder.isPublic() && !departmentAccessService.hasFolderAccess(dCtx.user(), folder)) {
-            throw new AccessDeniedException("Access denied to read file");
+        if (folder == null) {
+            if (!departmentAccessService.hasAnyAccess(dCtx.user(), dCtx.departmentId())) {
+                throw new AccessDeniedException("Access denied to upload file in root");
+            }
+        } else {
+            if (!folder.isPublic() && !departmentAccessService.hasFolderAccess(dCtx.user(), folder)) {
+                throw new AccessDeniedException("Access denied to read file");
+            }
         }
     }
 
