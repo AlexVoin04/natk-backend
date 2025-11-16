@@ -50,6 +50,9 @@ public class DepartmentFileEntity {
     @Column(name = "file_data", columnDefinition = "BYTEA", nullable = false)
     private byte[] fileData;
 
+    @Column(name = "storage_key")
+    private String storageKey;
+
     @Column(name = "file_type")
     private String fileType;
 

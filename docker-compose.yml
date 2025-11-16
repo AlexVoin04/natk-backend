@@ -32,7 +32,7 @@ services:
       - natk-net
 
   natk-api:
-    image: 'natk-api:0.1.1'
+    image: 'natk-api:0.2.1'
     build: ./natk-api
     environment:
       - DB_NAME=${DB_NAME}
@@ -45,6 +45,10 @@ services:
       - SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE=${SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE}
       - MINIO_ROOT_USER=${MINIO_ROOT_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - PDF_SERVICE_URL=${PDF_SERVICE_URL}
+      - AI_SERVICE_URL=${AI_SERVICE_URL}
+      - MINIO_URL=${MINIO_URL}
+#      - SPRING_PROFILES_ACTIVE=migration для перехода на минио
     ports:
       - "8000:8080"
     depends_on:

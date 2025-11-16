@@ -4,6 +4,7 @@ import com.natk.natk_api.baseStorage.context.StorageContext;
 import com.natk.natk_api.baseStorage.context.UserContext;
 import com.natk.natk_api.baseStorage.service.BaseFileService;
 import com.natk.natk_api.baseStorage.dto.FileDownloadDto;
+import com.natk.natk_api.minio.MinioFileService;
 import com.natk.natk_api.userStorage.dto.FileInfoDto;
 import com.natk.natk_api.baseStorage.dto.UploadFileDto;
 import com.natk.natk_api.userStorage.mapper.UserFileMapper;
@@ -31,6 +32,8 @@ public class UserBaseFileService extends BaseFileService<UserFileEntity, UserFol
     private final UserFileNameResolverService fileNameResolverService;
     private final MimeTypeValidatorService mimeTypeValidatorService;
     private final TransliterationService transliterationService;
+    private final MinioFileService minioFileService;
+    private static final String USER_BUCKET = "user-files";
 
     public UserBaseFileService(
             UserFileRepository fileRepo,
@@ -39,7 +42,7 @@ public class UserBaseFileService extends BaseFileService<UserFileEntity, UserFol
             UserFileMapper fileMapper,
             UserFileNameResolverService fileNameResolverService,
             MimeTypeValidatorService mimeTypeValidatorService,
-            TransliterationService transliterationService
+            TransliterationService transliterationService, MinioFileService minioFileService
     ) {
         super(fileRepo, folderRepo);
         this.currentUserService = currentUserService;
@@ -47,6 +50,7 @@ public class UserBaseFileService extends BaseFileService<UserFileEntity, UserFol
         this.fileNameResolverService = fileNameResolverService;
         this.mimeTypeValidatorService = mimeTypeValidatorService;
         this.transliterationService = transliterationService;
+        this.minioFileService = minioFileService;
     }
 
     protected UserContext getContext(){
@@ -134,29 +138,35 @@ public class UserBaseFileService extends BaseFileService<UserFileEntity, UserFol
     protected FileInfoDto applyUploadFile(UploadFileDto dto, UserFolderEntity folder, StorageContext ctx) {
         UserEntity user = ((UserContext) ctx).user();
         mimeTypeValidatorService.validate(dto.fileData());
-        String mimeType = mimeTypeValidatorService.detectMimeType(dto.fileData());
+        String mimeType = mimeTypeValidatorService.detectMimeType(dto.fileData(), dto.name());
 
         fileNameResolverService.ensureUniqueNameOrThrow(dto.name(), folder, user);
 
         UserFileEntity file = new UserFileEntity();
         file.setName(dto.name());
         file.setFolder(folder);
-        file.setFileData(dto.fileData());
         file.setFileType(mimeType);
         file.setCreatedBy(user);
         file.setCreatedAt(Instant.now());
         file.setDeleted(false);
         file.setDeletedAt(null);
 
+        String key = minioFileService.generateUserFileKey(user.getId(), UUID.randomUUID());
+        file.setStorageKey(key);
+
+        minioFileService.uploadFile(dto.fileData(), USER_BUCKET, key, mimeType);
+
         return fileMapper.toDto(fileRepo.save(file));
     }
 
     @Override
     protected FileDownloadDto applyDownload(UserFileEntity file, StorageContext ctx) {
+        byte[] bytes = minioFileService.downloadFile(USER_BUCKET, file.getStorageKey());
+
         String originalName = file.getName();
         String encoded = UriUtils.encode(originalName, StandardCharsets.UTF_8);
         String translit = transliterationService.transliterate(originalName);
-        return new FileDownloadDto(file.getFileData(), originalName, encoded, translit);
+        return new FileDownloadDto(bytes, originalName, encoded, translit);
     }
 
     @Override
@@ -214,7 +224,12 @@ public class UserBaseFileService extends BaseFileService<UserFileEntity, UserFol
         copy.setCreatedAt(Instant.now());
         copy.setDeleted(false);
         copy.setFileType(file.getFileType());
-        copy.setFileData(file.getFileData());
+
+        String key = minioFileService.generateUserFileKey(user.getId(), UUID.randomUUID());
+        copy.setStorageKey(key);
+
+        byte[] originalData = minioFileService.downloadFile(USER_BUCKET, file.getStorageKey());
+        minioFileService.uploadFile(originalData, USER_BUCKET, key, file.getFileType());
 
         return fileMapper.toDto(fileRepo.save(copy));
     }

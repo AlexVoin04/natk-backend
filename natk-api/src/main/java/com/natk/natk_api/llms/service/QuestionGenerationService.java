@@ -3,22 +3,19 @@ package com.natk.natk_api.llms.service;
 import com.natk.natk_api.llms.dto.FailedFileInfo;
 import com.natk.natk_api.llms.FileConversionException;
 import com.natk.natk_api.llms.QuestionType;
+import com.natk.natk_api.minio.MinioFileService;
+import com.natk.natk_api.pdf.service.PdfServiceClient;
 import com.natk.natk_api.userStorage.model.UserFileEntity;
 import com.natk.natk_api.userStorage.repository.UserFileRepository;
 import com.natk.natk_api.userStorage.service.MimeTypeValidatorService;
 import com.natk.natk_api.users.model.UserEntity;
 import com.natk.natk_api.users.service.CurrentUserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
-import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.RestClient;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +28,9 @@ public class QuestionGenerationService {
     private final UserFileRepository fileRepo;
     private final CurrentUserService currentUserService;
     private final MimeTypeValidatorService mimeTypeValidatorService;
-    private final RestClient restClient;
+    private final MinioFileService minioFileService;
+    private final PdfServiceClient pdfServiceClient;
+    private final AiServiceClient aiServiceClient;
 
     public String generateQuestions(
             List<UUID> fileIds,
@@ -45,7 +44,7 @@ public class QuestionGenerationService {
         String questionText = buildPrompt(questionCounts);
         MultiValueMap<String, HttpEntity<?>> multipartData = buildMultipartRequest(userFiles, questionText, provider);
 
-        return sendRequest(multipartData);
+        return aiServiceClient.generateQuestions(multipartData);
     }
 
 
@@ -100,14 +99,14 @@ public class QuestionGenerationService {
                              MultipartBodyBuilder bodyBuilder,
                              List<FailedFileInfo> failedFiles) {
 
-        byte[] fileData = file.getFileData();
-        String mimeType = mimeTypeValidatorService.detectMimeType(fileData);
+        byte[] fileData = minioFileService.downloadFile("user-files", file.getStorageKey());
+        String mimeType = mimeTypeValidatorService.detectMimeType(fileData, file.getName());
 
         if (mimeType.equals("application/pdf")) {
             addFilePart(bodyBuilder, file.getName(), fileData);
-        } else if (mimeTypeValidatorService.isConvertibleToPdf(fileData)) {
+        } else if (mimeTypeValidatorService.isConvertibleToPdf(fileData, file.getName())) {
             try {
-                fileData = normalizeToPdf(file);
+                fileData = normalizeToPdf(file, fileData);
                 addFilePart(bodyBuilder, file.getName().replaceAll("\\.[^.]+$", ".pdf"), fileData);
             } catch (Exception e) {
                 failedFiles.add(new FailedFileInfo(file.getId(), file.getName(), e.getMessage()));
@@ -129,38 +128,7 @@ public class QuestionGenerationService {
                         "form-data; name=\"files\"; filename=\"" + resource.getFilename() + "\"");
     }
 
-    private byte[] normalizeToPdf(UserFileEntity file) {
-        MultipartBodyBuilder builder = new MultipartBodyBuilder();
-        builder.part("file", new ByteArrayResource(file.getFileData()) {
-            @Override
-            public String getFilename() {
-                return file.getName();
-            }
-        });
-
-        return restClient.post()
-                .uri("http://natk-pdf:8080/convert")
-                .contentType(MediaType.MULTIPART_FORM_DATA)
-                .body(builder.build())
-                .retrieve()
-                .body(byte[].class);
-    }
-
-    /**
-     * Отправляет POST-запрос в AI-сервис и извлекает результат.
-     */
-    private String sendRequest(MultiValueMap<String, HttpEntity<?>> multipartData) {
-        try {
-            Map<String, String> response = restClient.post()
-                    .uri("http://natk-ai:8080/generate-questions/")
-                    .contentType(MediaType.MULTIPART_FORM_DATA)
-                    .body(multipartData)
-                    .retrieve()
-                    .body(new ParameterizedTypeReference<>() {});
-
-            return response != null ? response.get("result") : null;
-        }catch (HttpServerErrorException | HttpClientErrorException ex) {
-            throw new IllegalArgumentException("Error accessing natk-ai: " + ex.getResponseBodyAsString());
-        }
+    private byte[] normalizeToPdf(UserFileEntity file, byte[] fileData) {
+        return pdfServiceClient.convertToPdf(file.getName(), fileData);
     }
 }
