@@ -56,4 +56,7 @@ public class UserFileEntity {
 
     @Column(name = "deleted_at")
     private Instant deletedAt;
+
+    @Column(name = "file_size", nullable = false)
+    private long fileSize;
 }

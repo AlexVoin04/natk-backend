@@ -4,6 +4,8 @@ import com.natk.natk_api.baseStorage.context.StorageContext;
 import com.natk.natk_api.baseStorage.context.UserContext;
 import com.natk.natk_api.baseStorage.service.BaseFileService;
 import com.natk.natk_api.baseStorage.dto.FileDownloadDto;
+import com.natk.natk_api.baseStorage.service.MimeTypeValidatorService;
+import com.natk.natk_api.baseStorage.service.TransliterationService;
 import com.natk.natk_api.minio.MinioFileService;
 import com.natk.natk_api.userStorage.dto.FileInfoDto;
 import com.natk.natk_api.baseStorage.dto.UploadFileDto;
@@ -150,6 +152,7 @@ public class UserBaseFileService extends BaseFileService<UserFileEntity, UserFol
         file.setCreatedAt(Instant.now());
         file.setDeleted(false);
         file.setDeletedAt(null);
+        file.setFileSize(dto.size());
 
         String key = minioFileService.generateUserFileKey(user.getId(), UUID.randomUUID());
         file.setStorageKey(key);
@@ -224,6 +227,7 @@ public class UserBaseFileService extends BaseFileService<UserFileEntity, UserFol
         copy.setCreatedAt(Instant.now());
         copy.setDeleted(false);
         copy.setFileType(file.getFileType());
+        file.setFileSize(file.getFileSize());
 
         String key = minioFileService.generateUserFileKey(user.getId(), UUID.randomUUID());
         copy.setStorageKey(key);

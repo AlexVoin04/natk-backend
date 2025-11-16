@@ -32,7 +32,7 @@ services:
       - natk-net
 
   natk-api:
-    image: 'natk-api:0.2.1'
+    image: 'natk-api:0.2.2'
     build: ./natk-api
     environment:
       - DB_NAME=${DB_NAME}

@@ -15,8 +15,8 @@ import com.natk.natk_api.departmentStorage.repository.DepartmentFolderRepository
 import com.natk.natk_api.baseStorage.dto.FileDownloadDto;
 import com.natk.natk_api.baseStorage.dto.UploadFileDto;
 import com.natk.natk_api.minio.MinioFileService;
-import com.natk.natk_api.userStorage.service.MimeTypeValidatorService;
-import com.natk.natk_api.userStorage.service.TransliterationService;
+import com.natk.natk_api.baseStorage.service.MimeTypeValidatorService;
+import com.natk.natk_api.baseStorage.service.TransliterationService;
 import com.natk.natk_api.users.model.UserEntity;
 import com.natk.natk_api.users.service.CurrentUserService;
 import org.springframework.security.access.AccessDeniedException;
@@ -198,6 +198,7 @@ public class DepartmentBaseFileService extends BaseFileService<
         file.setCreatedBy(dCtx.user().getShortFio());
         file.setCreatedAt(Instant.now());
         file.setDeleted(false);
+        file.setFileSize(dto.size());
 
         String key = minioFileService.generateDepartmentFileKey(dept.getId(), UUID.randomUUID());
         file.setStorageKey(key);
@@ -283,6 +284,7 @@ public class DepartmentBaseFileService extends BaseFileService<
         copy.setDeleted(false);
         copy.setFileType(file.getFileType());
         copy.setDepartment(dept);
+        file.setFileSize(file.getFileSize());
 
         String key = minioFileService.generateDepartmentFileKey(dept.getId(), UUID.randomUUID());
         copy.setStorageKey(key);

@@ -1,4 +1,4 @@
-package com.natk.natk_api.userStorage.service;
+package com.natk.natk_api.baseStorage.service;
 
 import lombok.Getter;
 import org.apache.tika.Tika;

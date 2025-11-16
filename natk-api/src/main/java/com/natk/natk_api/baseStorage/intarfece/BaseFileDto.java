@@ -12,4 +12,6 @@ public interface BaseFileDto {
     boolean isDeleted();
     Instant deletedAt();
     String path();
+    long fileSize();
+    String storageKey();
 }

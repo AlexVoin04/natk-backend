@@ -7,7 +7,7 @@ import com.natk.natk_api.minio.MinioFileService;
 import com.natk.natk_api.pdf.service.PdfServiceClient;
 import com.natk.natk_api.userStorage.model.UserFileEntity;
 import com.natk.natk_api.userStorage.repository.UserFileRepository;
-import com.natk.natk_api.userStorage.service.MimeTypeValidatorService;
+import com.natk.natk_api.baseStorage.service.MimeTypeValidatorService;
 import com.natk.natk_api.users.model.UserEntity;
 import com.natk.natk_api.users.service.CurrentUserService;
 import lombok.RequiredArgsConstructor;

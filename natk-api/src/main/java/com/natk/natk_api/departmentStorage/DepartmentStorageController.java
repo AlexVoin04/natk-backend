@@ -101,7 +101,8 @@ public class DepartmentStorageController {
             @RequestPart("fileData") MultipartFile fileData
     ) throws IOException {
         byte[] bytes = fileData.getBytes();
-        UploadFileDto dto = new UploadFileDto(name, folderId, bytes);
+        long size = fileData.getSize();
+        UploadFileDto dto = new UploadFileDto(name, folderId, bytes, size);
         return departmentFileService.uploadFile(dto, departmentId);
     }
 

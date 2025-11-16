@@ -25,7 +25,9 @@ public class UserFileMapper {
                 folderDto,
                 entity.isDeleted(),
                 entity.getDeletedAt(),
-                path
+                path,
+                entity.getFileSize(),
+                entity.getStorageKey()
         );
     }
 }

@@ -48,6 +48,7 @@ public class DepartmentFolderEntity {
     @Column(name = "is_public", nullable = false)
     private boolean isPublic;
 
+    @Builder.Default
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;
 
