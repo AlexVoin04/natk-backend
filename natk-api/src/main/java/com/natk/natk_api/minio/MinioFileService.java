@@ -2,14 +2,14 @@ package com.natk.natk_api.minio;
 
 import io.minio.BucketExistsArgs;
 import io.minio.GetObjectArgs;
-import io.minio.GetObjectResponse;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.UUID;
 
 @Service
@@ -18,7 +18,7 @@ public class MinioFileService {
 
     private final MinioClient minioClient;
 
-    public void uploadFile(byte[] data, String bucket, String objectKey, String initialMimeType) {
+    public void uploadFile(InputStream stream, long size, String bucket, String objectKey, String initialMimeType) {
         try {
             if (!minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucket).build())) {
                 minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucket).build());
@@ -29,7 +29,7 @@ public class MinioFileService {
                     PutObjectArgs.builder()
                             .bucket(bucket)
                             .object(objectKey)
-                            .stream(new ByteArrayInputStream(data), data.length, -1)
+                            .stream(stream, size, -1)
                             .contentType(initialMimeType)
                             .build()
             );
@@ -38,16 +38,24 @@ public class MinioFileService {
         }
     }
 
-    public byte[] downloadFile(String bucket, String objectKey) {
-        try (GetObjectResponse response = minioClient.getObject(
-                GetObjectArgs.builder()
-                        .bucket(bucket)
-                        .object(objectKey)
-                        .build()
-        )) {
-            return response.readAllBytes();
+    public InputStream downloadFile(String bucket, String objectKey) {
+        try {
+            return minioClient.getObject(
+                    GetObjectArgs.builder()
+                            .bucket(bucket)
+                            .object(objectKey)
+                            .build()
+            );
         } catch (Exception e) {
             throw new RuntimeException("Не удалось скачать файл из MinIO", e);
+        }
+    }
+
+    public byte[] downloadFileAsBytes(String bucket, String objectKey) {
+        try (InputStream is = downloadFile(bucket, objectKey)) {
+            return is.readAllBytes();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to download file into memory", e);
         }
     }
 

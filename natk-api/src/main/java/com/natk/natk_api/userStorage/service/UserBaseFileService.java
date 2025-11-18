@@ -1,5 +1,6 @@
 package com.natk.natk_api.userStorage.service;
 
+import com.natk.natk_api.baseStorage.MagicValidationResult;
 import com.natk.natk_api.baseStorage.context.StorageContext;
 import com.natk.natk_api.baseStorage.context.UserContext;
 import com.natk.natk_api.baseStorage.service.BaseFileService;
@@ -19,8 +20,13 @@ import com.natk.natk_api.users.service.CurrentUserService;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import org.springframework.web.util.UriUtils;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.SequenceInputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
@@ -139,15 +145,20 @@ public class UserBaseFileService extends BaseFileService<UserFileEntity, UserFol
     @Override
     protected FileInfoDto applyUploadFile(UploadFileDto dto, UserFolderEntity folder, StorageContext ctx) {
         UserEntity user = ((UserContext) ctx).user();
-        mimeTypeValidatorService.validate(dto.fileData());
-        String mimeType = mimeTypeValidatorService.detectMimeType(dto.fileData(), dto.name());
+
+        MagicValidationResult res = mimeTypeValidatorService.validate(dto.fileData(), dto.name());
+
+        InputStream fullStream = new SequenceInputStream(
+                new ByteArrayInputStream(res.header()),
+                dto.fileData()
+        );
 
         fileNameResolverService.ensureUniqueNameOrThrow(dto.name(), folder, user);
 
         UserFileEntity file = new UserFileEntity();
         file.setName(dto.name());
         file.setFolder(folder);
-        file.setFileType(mimeType);
+        file.setFileType(res.mimeType());
         file.setCreatedBy(user);
         file.setCreatedAt(Instant.now());
         file.setDeleted(false);
@@ -157,19 +168,23 @@ public class UserBaseFileService extends BaseFileService<UserFileEntity, UserFol
         String key = minioFileService.generateUserFileKey(user.getId(), UUID.randomUUID());
         file.setStorageKey(key);
 
-        minioFileService.uploadFile(dto.fileData(), USER_BUCKET, key, mimeType);
+        minioFileService.uploadFile(fullStream, dto.size(), USER_BUCKET, key, res.mimeType());
 
         return fileMapper.toDto(fileRepo.save(file));
     }
 
     @Override
     protected FileDownloadDto applyDownload(UserFileEntity file, StorageContext ctx) {
-        byte[] bytes = minioFileService.downloadFile(USER_BUCKET, file.getStorageKey());
 
         String originalName = file.getName();
         String encoded = UriUtils.encode(originalName, StandardCharsets.UTF_8);
         String translit = transliterationService.transliterate(originalName);
-        return new FileDownloadDto(bytes, originalName, encoded, translit);
+        StreamingResponseBody body = outputStream -> {
+            try (InputStream stream = minioFileService.downloadFile(USER_BUCKET, file.getStorageKey())) {
+                stream.transferTo(outputStream);
+            }
+        };
+        return new FileDownloadDto(body, originalName, encoded, translit);
     }
 
     @Override
@@ -227,13 +242,25 @@ public class UserBaseFileService extends BaseFileService<UserFileEntity, UserFol
         copy.setCreatedAt(Instant.now());
         copy.setDeleted(false);
         copy.setFileType(file.getFileType());
-        file.setFileSize(file.getFileSize());
+        copy.setFileSize(file.getFileSize());
 
         String key = minioFileService.generateUserFileKey(user.getId(), UUID.randomUUID());
         copy.setStorageKey(key);
 
-        byte[] originalData = minioFileService.downloadFile(USER_BUCKET, file.getStorageKey());
-        minioFileService.uploadFile(originalData, USER_BUCKET, key, file.getFileType());
+        try (InputStream originalStream =
+                     minioFileService.downloadFile(USER_BUCKET, file.getStorageKey())) {
+
+            minioFileService.uploadFile(
+                    originalStream,
+                    copy.getFileSize(),
+                    USER_BUCKET,
+                    key,
+                    file.getFileType()
+            );
+
+        } catch (IOException e) {
+            throw new RuntimeException("Ошибка при копировании файла", e);
+        }
 
         return fileMapper.toDto(fileRepo.save(copy));
     }

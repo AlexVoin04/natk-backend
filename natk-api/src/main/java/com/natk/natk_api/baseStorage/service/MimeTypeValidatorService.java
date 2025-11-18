@@ -1,5 +1,6 @@
 package com.natk.natk_api.baseStorage.service;
 
+import com.natk.natk_api.baseStorage.MagicValidationResult;
 import lombok.Getter;
 import org.apache.tika.Tika;
 import org.apache.tika.io.TikaInputStream;
@@ -8,12 +9,15 @@ import org.apache.tika.metadata.TikaCoreProperties;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Optional;
 
 @Service
 public class MimeTypeValidatorService {
-    private static final long MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+    private static final int MAGIC_BYTES_LIMIT = 8192;
+    private static final long MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB
+    private final Tika tika = new Tika();
 
     @Getter
     public enum MimeType {
@@ -49,11 +53,22 @@ public class MimeTypeValidatorService {
         }
     }
 
-    private final Tika tika = new Tika();
+    public MagicValidationResult validate(InputStream is, String fileName) {
+        try {
+            byte[] header = is.readNBytes(MAGIC_BYTES_LIMIT);
+
+            validate(header);
+            String mime = detectMimeType(header, fileName);
+
+            return new MagicValidationResult(header, mime);
+        }catch (Exception e){
+            throw new RuntimeException("Failed to detect Magic mime type", e);
+        }
+    }
 
     public void validate(byte[] fileData) {
         if (fileData.length > MAX_FILE_SIZE_BYTES) {
-            throw new IllegalArgumentException("File size exceeds 10MB limit");
+            throw new IllegalArgumentException("File size exceeds 50MB limit");
         }
 
         String mimeType = tika.detect(fileData);

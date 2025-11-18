@@ -35,6 +35,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import java.io.IOException;
 import java.util.List;
@@ -97,9 +98,7 @@ public class UserStorageController {
             @RequestParam(value = "folderId", required = false) UUID folderId,
             @RequestPart("fileData") MultipartFile fileData
     ) throws IOException {
-        byte[] fileBytes = fileData.getBytes();
-        long size = fileData.getSize();
-        UploadFileDto dto = new UploadFileDto(name, folderId, fileBytes, size);
+        UploadFileDto dto = new UploadFileDto(name, folderId, fileData.getInputStream(), fileData.getSize());
         return userFileService.uploadFile(dto);
     }
 
@@ -138,13 +137,13 @@ public class UserStorageController {
     }
 
     @GetMapping("/files/{id}/download")
-    public ResponseEntity<byte[]> downloadFile(@PathVariable UUID id) {
+    public ResponseEntity<StreamingResponseBody> downloadFile(@PathVariable UUID id) {
         FileDownloadDto dto = userFileService.getFileDownloadData(id);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=\"" + dto.translitName() + "\"; filename*=UTF-8''" + dto.encodedName())
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .body(dto.fileData());
+                .body(dto.body());
     }
 
     @PostMapping("files/generate-questions")
