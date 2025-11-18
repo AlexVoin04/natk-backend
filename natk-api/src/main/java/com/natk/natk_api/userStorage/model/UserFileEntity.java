@@ -48,9 +48,15 @@ public class UserFileEntity {
     @Column(name = "file_data", columnDefinition = "BYTEA", nullable = false)
     private byte[] fileData;
 
+    @Column(name = "storage_key")
+    private String storageKey;
+
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;
 
     @Column(name = "deleted_at")
     private Instant deletedAt;
+
+    @Column(name = "file_size", nullable = false)
+    private long fileSize;
 }

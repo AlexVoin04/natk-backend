@@ -98,7 +98,8 @@ public class UserStorageController {
             @RequestPart("fileData") MultipartFile fileData
     ) throws IOException {
         byte[] fileBytes = fileData.getBytes();
-        UploadFileDto dto = new UploadFileDto(name, folderId, fileBytes);
+        long size = fileData.getSize();
+        UploadFileDto dto = new UploadFileDto(name, folderId, fileBytes, size);
         return userFileService.uploadFile(dto);
     }
 

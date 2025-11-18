@@ -1,9 +1,13 @@
-package com.natk.natk_api.userStorage.service;
+package com.natk.natk_api.baseStorage.service;
 
 import lombok.Getter;
 import org.apache.tika.Tika;
+import org.apache.tika.io.TikaInputStream;
+import org.apache.tika.metadata.Metadata;
+import org.apache.tika.metadata.TikaCoreProperties;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Optional;
 
@@ -17,6 +21,7 @@ public class MimeTypeValidatorService {
         DOCX("application/vnd.openxmlformats-officedocument.wordprocessingml.document", true),
         XLSX("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", true),
         XLS("application/vnd.ms-excel", true),
+        PPTX("application/vnd.openxmlformats-officedocument.presentationml.presentation", true),
         OOXML("application/x-tika-ooxml", true),
         TXT("text/plain", true),
         PNG("image/png", true),
@@ -57,12 +62,18 @@ public class MimeTypeValidatorService {
         }
     }
 
-    public String detectMimeType(byte[] fileData) {
-        return tika.detect(fileData);
+    public String detectMimeType(byte[] fileData, String fileName) {
+        Metadata metadata = new Metadata();
+        metadata.set(TikaCoreProperties.RESOURCE_NAME_KEY, fileName); // указать имя файла с расширением
+        try (TikaInputStream stream = TikaInputStream.get(fileData)) {
+            return tika.getDetector().detect(stream, metadata).toString();
+        }catch (IOException e){
+            throw new RuntimeException("Failed to detect mime type", e);
+        }
     }
 
-    public boolean isConvertibleToPdf(byte[] fileData) {
-        String mimeType = detectMimeType(fileData);
+    public boolean isConvertibleToPdf(byte[] fileData, String fileName) {
+        String mimeType = detectMimeType(fileData, fileName);
         return MimeType.fromType(mimeType)
                 .map(MimeType::isConvertibleToPdf)
                 .orElse(false);

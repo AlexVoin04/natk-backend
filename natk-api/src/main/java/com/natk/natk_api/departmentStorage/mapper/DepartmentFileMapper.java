@@ -28,7 +28,9 @@ public class DepartmentFileMapper {
                 entity.isDeleted(),
                 entity.getDeletedAt(),
                 path,
-                entity.getCreatedBy()
+                entity.getCreatedBy(),
+                entity.getFileSize(),
+                entity.getStorageKey()
         );
     }
 }

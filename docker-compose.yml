@@ -32,7 +32,7 @@ services:
       - natk-net
 
   natk-api:
-    image: 'natk-api:0.1.1'
+    image: 'natk-api:0.2.2'
     build: ./natk-api
     environment:
       - DB_NAME=${DB_NAME}
@@ -43,6 +43,12 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE=${SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE}
       - SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE=${SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE}
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - PDF_SERVICE_URL=${PDF_SERVICE_URL}
+      - AI_SERVICE_URL=${AI_SERVICE_URL}
+      - MINIO_URL=${MINIO_URL}
+#      - SPRING_PROFILES_ACTIVE=migration для перехода на минио
     ports:
       - "8000:8080"
     depends_on:
@@ -77,8 +83,26 @@ services:
     networks:
       - natk-net
 
+  minio:
+    image: minio/minio:latest
+    container_name: natk-minio
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_KMS_SECRET_KEY=${MINIO_KMS_SECRET_KEY} # секретный ключ для KMS
+      - MINIO_KMS_AUTO_ENCRYPTION=on
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"   # API
+      - "9001:9001"   # Web console
+    volumes:
+      - minio-data:/data
+    networks:
+      - natk-net
+
 volumes:
   pgdata:
+  minio-data:
 
 networks:
   natk-net:

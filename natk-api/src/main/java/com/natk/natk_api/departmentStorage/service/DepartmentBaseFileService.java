@@ -14,8 +14,9 @@ import com.natk.natk_api.departmentStorage.repository.DepartmentFileRepository;
 import com.natk.natk_api.departmentStorage.repository.DepartmentFolderRepository;
 import com.natk.natk_api.baseStorage.dto.FileDownloadDto;
 import com.natk.natk_api.baseStorage.dto.UploadFileDto;
-import com.natk.natk_api.userStorage.service.MimeTypeValidatorService;
-import com.natk.natk_api.userStorage.service.TransliterationService;
+import com.natk.natk_api.minio.MinioFileService;
+import com.natk.natk_api.baseStorage.service.MimeTypeValidatorService;
+import com.natk.natk_api.baseStorage.service.TransliterationService;
 import com.natk.natk_api.users.model.UserEntity;
 import com.natk.natk_api.users.service.CurrentUserService;
 import org.springframework.security.access.AccessDeniedException;
@@ -44,6 +45,8 @@ public class DepartmentBaseFileService extends BaseFileService<
     private final CurrentUserService currentUserService;
     private final DepartmentAccessService departmentAccessService;
     private final DepartmentFileMapper departmentFileMapper;
+    private final MinioFileService minioFileService;
+    private static final String DEPARTMENT_BUCKET = "department-files";
 
     public DepartmentBaseFileService(
             DepartmentFileRepository fileRepo,
@@ -53,7 +56,7 @@ public class DepartmentBaseFileService extends BaseFileService<
             TransliterationService transliterationService,
             CurrentUserService currentUserService,
             DepartmentAccessService departmentAccessService,
-            DepartmentFileMapper departmentFileMapper
+            DepartmentFileMapper departmentFileMapper, MinioFileService minioFileService
     ) {
         super(fileRepo, folderRepo);
         this.fileRepo = fileRepo;
@@ -64,6 +67,7 @@ public class DepartmentBaseFileService extends BaseFileService<
         this.currentUserService = currentUserService;
         this.departmentAccessService = departmentAccessService;
         this.departmentFileMapper = departmentFileMapper;
+        this.minioFileService = minioFileService;
     }
 
     @Transactional
@@ -182,30 +186,36 @@ public class DepartmentBaseFileService extends BaseFileService<
         DepartmentContext dCtx = (DepartmentContext) ctx;
         DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
         mimeTypeValidatorService.validate(dto.fileData());
-        String mimeType = mimeTypeValidatorService.detectMimeType(dto.fileData());
+        String mimeType = mimeTypeValidatorService.detectMimeType(dto.fileData(), dto.name());
 
         fileNameResolverService.ensureUniqueNameOrThrow(dto.name(), folder, dept);
 
         DepartmentFileEntity file = new DepartmentFileEntity();
         file.setName(dto.name());
         file.setFolder(folder);
-        file.setFileData(dto.fileData());
         file.setFileType(mimeType);
         file.setDepartment(dept);
         file.setCreatedBy(dCtx.user().getShortFio());
         file.setCreatedAt(Instant.now());
         file.setDeleted(false);
-        file.setDeletedAt(null);
+        file.setFileSize(dto.size());
+
+        String key = minioFileService.generateDepartmentFileKey(dept.getId(), UUID.randomUUID());
+        file.setStorageKey(key);
+
+        minioFileService.uploadFile(dto.fileData(), DEPARTMENT_BUCKET, key, mimeType);
 
         return mapToDto(fileRepo.save(file));
     }
 
     @Override
     protected FileDownloadDto applyDownload(DepartmentFileEntity file, StorageContext ctx) {
+        byte[] bytes = minioFileService.downloadFile(DEPARTMENT_BUCKET, file.getStorageKey());
+
         String originalName = file.getName();
         String encoded = UriUtils.encode(originalName, StandardCharsets.UTF_8);
         String translit = transliterationService.transliterate(originalName);
-        return new FileDownloadDto(file.getFileData(), originalName, encoded, translit);
+        return new FileDownloadDto(bytes, originalName, encoded, translit);
     }
 
     @Override
@@ -273,8 +283,14 @@ public class DepartmentBaseFileService extends BaseFileService<
         copy.setCreatedAt(Instant.now());
         copy.setDeleted(false);
         copy.setFileType(file.getFileType());
-        copy.setFileData(file.getFileData());
         copy.setDepartment(dept);
+        file.setFileSize(file.getFileSize());
+
+        String key = minioFileService.generateDepartmentFileKey(dept.getId(), UUID.randomUUID());
+        copy.setStorageKey(key);
+
+        byte[] originalData = minioFileService.downloadFile(DEPARTMENT_BUCKET, file.getStorageKey());
+        minioFileService.uploadFile(originalData, DEPARTMENT_BUCKET, key, file.getFileType());
 
         return mapToDto(fileRepo.save(copy));
     }

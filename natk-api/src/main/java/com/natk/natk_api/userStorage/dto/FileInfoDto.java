@@ -13,5 +13,7 @@ public record FileInfoDto(
         FolderDto folder,
         boolean isDeleted,
         Instant deletedAt,
-        String path
+        String path,
+        long fileSize,
+        String storageKey
 ) implements BaseFileDto {}

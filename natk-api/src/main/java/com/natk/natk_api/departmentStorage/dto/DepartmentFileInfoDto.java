@@ -14,5 +14,7 @@ public record DepartmentFileInfoDto(
         boolean isDeleted,
         Instant deletedAt,
         String path,
-        String user
+        String user,
+        long fileSize,
+        String storageKey
 ) implements BaseFileDto {}

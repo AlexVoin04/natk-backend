@@ -67,8 +67,10 @@ CREATE TABLE department_files (
     created_by VARCHAR(100) NOT NULL,
     department_id UUID NOT NULL,
     created_at TIMESTAMP,
-    file_data BYTEA,
+    file_data BYTEA, -- перешли на MinIO
+    storage_key VARCHAR(500) NOT NULL,
     file_type VARCHAR(100),
+    file_size BIGINT NOT NULL,
     is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
     deleted_at TIMESTAMP NULL,
     FOREIGN KEY (folder_id) REFERENCES department_folders(id) ON DELETE CASCADE,
@@ -105,8 +107,10 @@ CREATE TABLE user_files (
     folder_id UUID,
     created_by UUID NOT NULL,
     created_at TIMESTAMP,
-    file_data BYTEA,
+    file_data BYTEA, -- перешли на MinIO
+    storage_key VARCHAR(500) NOT NULL,
     file_type VARCHAR(100),
+    file_size BIGINT NOT NULL,
     is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
     deleted_at TIMESTAMP NULL,
     FOREIGN KEY (folder_id) REFERENCES user_folders(id) ON DELETE CASCADE,
