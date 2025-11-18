@@ -7,13 +7,51 @@ This repository contains a microservices architecture with:
 - **natk-pdf** — PDF conversion microservice
 - **natk-ai** — AI service integrating Gemini API
 - **PostgreSQL** — Database for persistence
-- **MinIO** — S3-compatible storage that stores files uploaded through NATK services
+- **MinIO** — S3-compatible storage that stores files uploaded through NATK-API
 
 ---
-# 📦 MinIO (File Storage)
-- Stores user files (PDF, images, documents)
-- Uses `natk-api` to work with files (uploading files, returning a link to a file in a bucket)
-- Fully compatible with the Amazon S3 API
+# 📦 MinIO: S3-Compatible File Storage (with SSE-KMS Encryption)
+NATK uses MinIO as a distributed S3-compatible storage for all uploaded user and department files.
+It serves as a secure and scalable backend for:
+- User storage (user-files)
+- Department storage (department-files)
+
+## 🔐 Server-Side Encryption (SSE-KMS)
+
+MinIO is configured with server-side encryption (SSE-KMS) enabled. 
+This means:
+- All files are automatically encrypted before being written to disk
+- Encryption uses a symmetric key defined in `.env`
+- NATK services don’t need to manage encryption keys manually
+- MinIO handles key rotation and internal cryptography
+
+## ⚙️ MinIO Configuration in docker-compose.yml (SSE-KMS ON)
+```yaml
+environment:
+  - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+  - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+  # 🔐 Enable encrypted storage using internal KMS
+  - MINIO_KMS_SECRET_KEYS=${MINIO_KMS_SECRET_KEYS}
+  - MINIO_KMS_AUTO_ENCRYPTION=on
+```
+
+## 🔑 .env Example for Encryption
+```yaml
+# MinIO admin credentials
+MINIO_ROOT_USER=minioadmin
+MINIO_ROOT_PASSWORD=minioadmin123
+
+# AES-256 master key for SSE-KMS
+MINIO_KMS_SECRET_KEYS=my-minio-key:Lo4nNhprTgYkfJ9+Cn7KmV7cAnEUaDczTOoki6YCZXE=
+```
+## Requirements for the key format:
+
+
+```markdown
+<alias>:<base64-encoded-32-byte-key>
+```
+
+
 ---
 
 # NATK API

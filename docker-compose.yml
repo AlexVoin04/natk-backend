@@ -89,6 +89,8 @@ services:
     environment:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_KMS_SECRET_KEY=${MINIO_KMS_SECRET_KEY} # секретный ключ для KMS
+      - MINIO_KMS_AUTO_ENCRYPTION=on
     command: server /data --console-address ":9001"
     ports:
       - "9000:9000"   # API
