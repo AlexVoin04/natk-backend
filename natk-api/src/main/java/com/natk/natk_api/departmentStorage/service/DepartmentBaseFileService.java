@@ -123,6 +123,9 @@ public class DepartmentBaseFileService extends BaseFileService<
 
     protected StorageContext getContext(UUID departmentId) {
         UserEntity user = currentUserService.getCurrentUser();
+        if (!departmentAccessService.hasAnyAccess(user, departmentId)) {
+            throw new FileOrFolderNotFoundOrNoAccessException();
+        }
         return new DepartmentContext(user, departmentId);
     }
 
@@ -146,8 +149,18 @@ public class DepartmentBaseFileService extends BaseFileService<
     protected DepartmentFolderEntity findFolder(UUID id, StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
         DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
-        return folderRepo.findByIdAndDepartmentAndIsDeletedFalse(id, dept)
+
+        var folder = folderRepo.findByIdAndDepartmentAndIsDeletedFalse(id, dept)
                 .orElseThrow(FileOrFolderNotFoundOrNoAccessException::new);
+
+        if (!folder.getDepartment().getId().equals(dCtx.departmentId())) {
+            throw new FileOrFolderNotFoundOrNoAccessException();
+        }
+
+        if (!folder.isPublic() && !departmentAccessService.hasFolderAccess(dCtx.user(), folder)) {
+            throw new FileOrFolderNotFoundOrNoAccessException();
+        }
+        return folder;
     }
 
     @Override
