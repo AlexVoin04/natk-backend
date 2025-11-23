@@ -15,6 +15,7 @@ import com.natk.natk_api.departmentStorage.repository.DepartmentFileRepository;
 import com.natk.natk_api.departmentStorage.repository.DepartmentFolderRepository;
 import com.natk.natk_api.baseStorage.dto.FileDownloadDto;
 import com.natk.natk_api.baseStorage.dto.UploadFileDto;
+import com.natk.natk_api.exception.FileOrFolderNotFoundOrNoAccessException;
 import com.natk.natk_api.minio.MinioFileService;
 import com.natk.natk_api.baseStorage.service.MimeTypeValidatorService;
 import com.natk.natk_api.baseStorage.service.TransliterationService;
@@ -122,6 +123,9 @@ public class DepartmentBaseFileService extends BaseFileService<
 
     protected StorageContext getContext(UUID departmentId) {
         UserEntity user = currentUserService.getCurrentUser();
+        if (!departmentAccessService.hasAnyAccess(user, departmentId)) {
+            throw new FileOrFolderNotFoundOrNoAccessException();
+        }
         return new DepartmentContext(user, departmentId);
     }
 
@@ -130,7 +134,7 @@ public class DepartmentBaseFileService extends BaseFileService<
         DepartmentContext dCtx = (DepartmentContext) ctx;
         DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
         return fileRepo.findByIdAndDepartmentAndIsDeletedFalse(id, dept)
-                .orElseThrow(() -> new AccessDeniedException("File not found in department"));
+                .orElseThrow(FileOrFolderNotFoundOrNoAccessException::new);
     }
 
     @Override
@@ -138,15 +142,25 @@ public class DepartmentBaseFileService extends BaseFileService<
         DepartmentContext dCtx = (DepartmentContext) ctx;
         DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
         return fileRepo.findByIdAndDepartmentAndIsDeletedTrue(id, dept)
-                .orElseThrow(() -> new AccessDeniedException("Deleted file not found in department"));
+                .orElseThrow(FileOrFolderNotFoundOrNoAccessException::new);
     }
 
     @Override
     protected DepartmentFolderEntity findFolder(UUID id, StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
         DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
-        return folderRepo.findByIdAndDepartmentAndIsDeletedFalse(id, dept)
-                .orElseThrow(() -> new AccessDeniedException("Folder not found in department"));
+
+        var folder = folderRepo.findByIdAndDepartmentAndIsDeletedFalse(id, dept)
+                .orElseThrow(FileOrFolderNotFoundOrNoAccessException::new);
+
+        if (!folder.getDepartment().getId().equals(dCtx.departmentId())) {
+            throw new FileOrFolderNotFoundOrNoAccessException();
+        }
+
+        if (!folder.isPublic() && !departmentAccessService.hasFolderAccess(dCtx.user(), folder)) {
+            throw new FileOrFolderNotFoundOrNoAccessException();
+        }
+        return folder;
     }
 
     @Override
@@ -163,7 +177,7 @@ public class DepartmentBaseFileService extends BaseFileService<
             }
         } else {
             if (!folder.isPublic() && !departmentAccessService.hasFolderAccess(dCtx.user(), folder)) {
-                throw new AccessDeniedException("Access denied to read file");
+                throw new FileOrFolderNotFoundOrNoAccessException();
             }
         }
     }

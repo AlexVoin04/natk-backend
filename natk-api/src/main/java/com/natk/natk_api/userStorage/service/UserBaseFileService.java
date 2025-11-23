@@ -7,6 +7,7 @@ import com.natk.natk_api.baseStorage.service.BaseFileService;
 import com.natk.natk_api.baseStorage.dto.FileDownloadDto;
 import com.natk.natk_api.baseStorage.service.MimeTypeValidatorService;
 import com.natk.natk_api.baseStorage.service.TransliterationService;
+import com.natk.natk_api.exception.FileOrFolderNotFoundOrNoAccessException;
 import com.natk.natk_api.minio.MinioFileService;
 import com.natk.natk_api.userStorage.dto.FileInfoDto;
 import com.natk.natk_api.baseStorage.dto.UploadFileDto;
@@ -17,7 +18,6 @@ import com.natk.natk_api.userStorage.repository.UserFileRepository;
 import com.natk.natk_api.userStorage.repository.UserFolderRepository;
 import com.natk.natk_api.users.model.UserEntity;
 import com.natk.natk_api.users.service.CurrentUserService;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
@@ -113,21 +113,21 @@ public class UserBaseFileService extends BaseFileService<UserFileEntity, UserFol
     protected UserFileEntity findFile(UUID id, StorageContext ctx) {
         UserEntity user = ((UserContext) ctx).user();
         return fileRepo.findByIdAndCreatedBy(id, user)
-                .orElseThrow(() -> new AccessDeniedException("File not found or not owned by user"));
+                .orElseThrow(FileOrFolderNotFoundOrNoAccessException::new);
     }
 
     @Override
     protected UserFileEntity findDeletedFile(UUID id, StorageContext ctx) {
         UserEntity user = ((UserContext) ctx).user();
         return fileRepo.findByIdAndCreatedByAndIsDeletedTrue(id, user)
-                .orElseThrow(() -> new AccessDeniedException("Deleted file not found or not owned by user"));
+                .orElseThrow(FileOrFolderNotFoundOrNoAccessException::new);
     }
 
     @Override
     protected UserFolderEntity findFolder(UUID id, StorageContext ctx) {
         UserEntity user = ((UserContext) ctx).user();
         return folderRepo.findByIdAndUserAndIsDeletedFalse(id, user)
-                .orElseThrow(() -> new AccessDeniedException("Folder not found or not owned by user"));
+                .orElseThrow(FileOrFolderNotFoundOrNoAccessException::new);
     }
 
     @Override

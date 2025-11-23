@@ -13,6 +13,7 @@ import com.natk.natk_api.departmentStorage.model.DepartmentFolderEntity;
 import com.natk.natk_api.departmentStorage.repository.DepartmentFolderRepository;
 import com.natk.natk_api.baseStorage.dto.CreateFolderDto;
 import com.natk.natk_api.baseStorage.dto.FolderTreeDto;
+import com.natk.natk_api.exception.FileOrFolderNotFoundOrNoAccessException;
 import com.natk.natk_api.users.model.UserEntity;
 import com.natk.natk_api.users.service.CurrentUserService;
 import org.springframework.security.access.AccessDeniedException;
@@ -81,6 +82,9 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
 
     protected StorageContext getContext(UUID departmentId) {
         UserEntity user = currentUserService.getCurrentUser();
+        if (!departmentAccessService.hasAnyAccess(user, departmentId)) {
+            throw new FileOrFolderNotFoundOrNoAccessException();
+        }
         return new DepartmentContext(user, departmentId);
     }
 
@@ -89,11 +93,15 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
         DepartmentContext dCtx = (DepartmentContext) ctx;
         DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
 
-        DepartmentFolderEntity folder = folderRepo.findByIdAndDepartmentAndIsDeletedFalse(id, dept)
-                .orElseThrow(() -> new AccessDeniedException("Folder not found"));
+        var folder = folderRepo.findByIdAndDepartmentAndIsDeletedFalse(id, dept)
+                .orElseThrow(FileOrFolderNotFoundOrNoAccessException::new);
+
+        if (!folder.getDepartment().getId().equals(dCtx.departmentId())) {
+            throw new FileOrFolderNotFoundOrNoAccessException();
+        }
 
         if (!folder.isPublic() && !departmentAccessService.hasFolderAccess(dCtx.user(), folder)) {
-            throw new AccessDeniedException("Access denied");
+            throw new FileOrFolderNotFoundOrNoAccessException();
         }
         return folder;
     }
@@ -104,7 +112,7 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
         DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
 
         return folderRepo.findByIdAndDepartmentAndIsDeletedTrue(id, dept)
-                .orElseThrow(() -> new AccessDeniedException("Deleted folder not found"));
+                .orElseThrow(FileOrFolderNotFoundOrNoAccessException::new);
     }
 
     @Override
@@ -183,7 +191,7 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
         } else if (dto.newParentFolderId() != null) {
             DepartmentFolderEntity newParent = folderRepo
                     .findByIdAndDepartmentAndIsDeletedFalse(dto.newParentFolderId(), dept)
-                    .orElseThrow(() -> new AccessDeniedException("New parent not found"));
+                    .orElseThrow(FileOrFolderNotFoundOrNoAccessException::new);
 
             validateNotMovingIntoSelfOrDescendant(folder.getId(), newParent.getId());
 

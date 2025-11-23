@@ -5,6 +5,7 @@ import com.natk.natk_api.department.repository.DepartmentRepository;
 import com.natk.natk_api.department.repository.DepartmentUserRepository;
 import com.natk.natk_api.departmentStorage.model.DepartmentFolderEntity;
 import com.natk.natk_api.departmentStorage.repository.DepartmentFolderAccessRepository;
+import com.natk.natk_api.exception.FileOrFolderNotFoundOrNoAccessException;
 import com.natk.natk_api.users.model.UserEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,7 +22,7 @@ public class DepartmentAccessService {
 
     public DepartmentEntity getDepartmentOrThrow(UUID departmentId) {
         return departmentRepo.findById(departmentId)
-                .orElseThrow(() -> new IllegalArgumentException("Department not found"));
+                .orElseThrow(FileOrFolderNotFoundOrNoAccessException::new);
     }
 
     public enum Permission {
