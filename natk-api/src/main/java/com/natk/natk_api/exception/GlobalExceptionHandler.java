@@ -1,6 +1,7 @@
 package com.natk.natk_api.exception;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.natk.natk_api.clamav.ClamAVClientService;
 import com.natk.natk_api.llms.FileConversionException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -49,6 +50,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
         return buildErrorResponse(ex.getMessage(), "Forbidden", HttpServletResponse.SC_FORBIDDEN, request);
+    }
+
+    @ExceptionHandler(ClamAVClientService.VirusFoundException.class)
+    public ResponseEntity<ErrorResponse> handleVirusFound(ClamAVClientService.VirusFoundException ex,
+                                                          HttpServletRequest request) {
+
+        return buildErrorResponse(
+                ex.getMessage(),
+                "Virus Detected",
+                HttpServletResponse.SC_BAD_REQUEST,
+                request
+        );
     }
 
     @ExceptionHandler(DuplicateNameException.class)

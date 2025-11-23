@@ -48,6 +48,8 @@ services:
       - PDF_SERVICE_URL=${PDF_SERVICE_URL}
       - AI_SERVICE_URL=${AI_SERVICE_URL}
       - MINIO_URL=${MINIO_URL}
+      - CLAMAV_HOST=${CLAMAV_HOST}
+      - CLAMAV_PORT=${CLAMAV_PORT}
 #      - SPRING_PROFILES_ACTIVE=migration для перехода на минио
     ports:
       - "8000:8080"
@@ -97,6 +99,14 @@ services:
       - "9001:9001"   # Web console
     volumes:
       - minio-data:/data
+    networks:
+      - natk-net
+
+  clamav:
+    image: clamav/clamav:latest
+    container_name: natk-clamav
+    ports:
+      - "3310:3310"
     networks:
       - natk-net
 
