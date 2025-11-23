@@ -13,6 +13,7 @@ import com.natk.natk_api.departmentStorage.model.DepartmentFolderEntity;
 import com.natk.natk_api.departmentStorage.repository.DepartmentFolderRepository;
 import com.natk.natk_api.baseStorage.dto.CreateFolderDto;
 import com.natk.natk_api.baseStorage.dto.FolderTreeDto;
+import com.natk.natk_api.exception.FileOrFolderNotFoundOrNoAccessException;
 import com.natk.natk_api.users.model.UserEntity;
 import com.natk.natk_api.users.service.CurrentUserService;
 import org.springframework.security.access.AccessDeniedException;
@@ -90,7 +91,7 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
         DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
 
         DepartmentFolderEntity folder = folderRepo.findByIdAndDepartmentAndIsDeletedFalse(id, dept)
-                .orElseThrow(() -> new AccessDeniedException("Folder not found"));
+                .orElseThrow(FileOrFolderNotFoundOrNoAccessException::new);
 
         if (!folder.isPublic() && !departmentAccessService.hasFolderAccess(dCtx.user(), folder)) {
             throw new AccessDeniedException("Access denied");
@@ -104,7 +105,7 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
         DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
 
         return folderRepo.findByIdAndDepartmentAndIsDeletedTrue(id, dept)
-                .orElseThrow(() -> new AccessDeniedException("Deleted folder not found"));
+                .orElseThrow(FileOrFolderNotFoundOrNoAccessException::new);
     }
 
     @Override
@@ -183,7 +184,7 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
         } else if (dto.newParentFolderId() != null) {
             DepartmentFolderEntity newParent = folderRepo
                     .findByIdAndDepartmentAndIsDeletedFalse(dto.newParentFolderId(), dept)
-                    .orElseThrow(() -> new AccessDeniedException("New parent not found"));
+                    .orElseThrow(FileOrFolderNotFoundOrNoAccessException::new);
 
             validateNotMovingIntoSelfOrDescendant(folder.getId(), newParent.getId());
 

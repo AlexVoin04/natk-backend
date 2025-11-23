@@ -35,6 +35,17 @@ public class GlobalExceptionHandler {
                 request);
     }
 
+    @ExceptionHandler(FileOrFolderNotFoundOrNoAccessException.class)
+    public ResponseEntity<ErrorResponse> handleFileOrFolderNotFound(FileOrFolderNotFoundOrNoAccessException ex,
+                                                                    HttpServletRequest request) {
+        return buildErrorResponse(
+                ex.getMessage(),
+                "Not Found",
+                HttpServletResponse.SC_NOT_FOUND,
+                request
+        );
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
         return buildErrorResponse(ex.getMessage(), "Forbidden", HttpServletResponse.SC_FORBIDDEN, request);

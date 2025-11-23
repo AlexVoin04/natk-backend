@@ -6,6 +6,7 @@ import com.natk.natk_api.baseStorage.dto.MoveFolderDto;
 import com.natk.natk_api.baseStorage.dto.RenameFolderDto;
 import com.natk.natk_api.baseStorage.service.BaseFolderService;
 import com.natk.natk_api.baseStorage.dto.CreateFolderDto;
+import com.natk.natk_api.exception.FileOrFolderNotFoundOrNoAccessException;
 import com.natk.natk_api.userStorage.dto.FolderDto;
 import com.natk.natk_api.baseStorage.dto.FolderTreeDto;
 import com.natk.natk_api.userStorage.mapper.UserFolderMapper;
@@ -13,7 +14,6 @@ import com.natk.natk_api.userStorage.model.UserFolderEntity;
 import com.natk.natk_api.userStorage.repository.UserFolderRepository;
 import com.natk.natk_api.users.model.UserEntity;
 import com.natk.natk_api.users.service.CurrentUserService;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -81,14 +81,14 @@ public class UserBaseFolderService extends BaseFolderService<UserFolderEntity, U
     protected UserFolderEntity findFolder(UUID id, StorageContext ctx) {
         UserEntity user = ((UserContext) ctx).user();
         return folderRepo.findByIdAndUserAndIsDeletedFalse(id, user)
-                .orElseThrow(() -> new AccessDeniedException("Folder not found or not owned by user or deleted"));
+                .orElseThrow(FileOrFolderNotFoundOrNoAccessException::new);
     }
 
     @Override
     protected UserFolderEntity findDeletedFolder(UUID id, StorageContext ctx) {
         UserEntity user = ((UserContext) ctx).user();
         return folderRepo.findByIdAndUserAndIsDeletedTrue(id, user)
-                .orElseThrow(() -> new AccessDeniedException("Folder not found or not owned by user or not deleted"));
+                .orElseThrow(FileOrFolderNotFoundOrNoAccessException::new);
     }
 
     @Override
@@ -155,7 +155,7 @@ public class UserBaseFolderService extends BaseFolderService<UserFolderEntity, U
         } else if (dto.newParentFolderId() != null) {
             UserFolderEntity newParent = folderRepo
                     .findByIdAndUserAndIsDeletedFalse(dto.newParentFolderId(), user)
-                    .orElseThrow(() -> new AccessDeniedException("New parent folder not found"));
+                    .orElseThrow(FileOrFolderNotFoundOrNoAccessException::new);
 
             validateNotMovingIntoSelfOrDescendant(folder.getId(), newParent.getId());
 
