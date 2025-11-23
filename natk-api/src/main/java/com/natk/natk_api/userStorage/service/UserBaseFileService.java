@@ -165,7 +165,7 @@ public class UserBaseFileService extends BaseFileService<UserFileEntity, UserFol
         file.setDeletedAt(null);
         file.setFileSize(dto.size());
 
-        String key = minioFileService.generateUserFileKey(user.getId(), UUID.randomUUID());
+        String key = minioFileService.generateUserFileKey(user.getId());
         file.setStorageKey(key);
 
         minioFileService.uploadFile(fullStream, dto.size(), USER_BUCKET, key, res.mimeType());
@@ -244,22 +244,13 @@ public class UserBaseFileService extends BaseFileService<UserFileEntity, UserFol
         copy.setFileType(file.getFileType());
         copy.setFileSize(file.getFileSize());
 
-        String key = minioFileService.generateUserFileKey(user.getId(), UUID.randomUUID());
-        copy.setStorageKey(key);
+        String newKey  = minioFileService.generateUserFileKey(user.getId());
+        copy.setStorageKey(newKey);
 
-        try (InputStream originalStream =
-                     minioFileService.downloadFile(USER_BUCKET, file.getStorageKey())) {
-
-            minioFileService.uploadFile(
-                    originalStream,
-                    copy.getFileSize(),
-                    USER_BUCKET,
-                    key,
-                    file.getFileType()
-            );
-
-        } catch (IOException e) {
-            throw new RuntimeException("Ошибка при копировании файла", e);
+        try {
+            minioFileService.copyObjectServerSide(USER_BUCKET, file.getStorageKey(), newKey);
+        } catch (Exception e) {
+            throw new RuntimeException("Ошибка при server-side копировании файла", e);
         }
 
         return fileMapper.toDto(fileRepo.save(copy));

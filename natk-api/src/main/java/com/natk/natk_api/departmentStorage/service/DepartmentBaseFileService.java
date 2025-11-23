@@ -211,7 +211,7 @@ public class DepartmentBaseFileService extends BaseFileService<
         file.setDeleted(false);
         file.setFileSize(dto.size());
 
-        String key = minioFileService.generateDepartmentFileKey(dept.getId(), UUID.randomUUID());
+        String key = minioFileService.generateDepartmentFileKey(dept.getId());
         file.setStorageKey(key);
 
         minioFileService.uploadFile(fullStream, dto.size(), DEPARTMENT_BUCKET, key, res.mimeType());
@@ -301,22 +301,13 @@ public class DepartmentBaseFileService extends BaseFileService<
         copy.setDepartment(dept);
         copy.setFileSize(file.getFileSize());
 
-        String key = minioFileService.generateDepartmentFileKey(dept.getId(), UUID.randomUUID());
-        copy.setStorageKey(key);
+        String newKey = minioFileService.generateDepartmentFileKey(dept.getId());
+        copy.setStorageKey(newKey);
 
-        try (InputStream originalStream =
-                     minioFileService.downloadFile(DEPARTMENT_BUCKET, file.getStorageKey())) {
-
-            minioFileService.uploadFile(
-                    originalStream,
-                    copy.getFileSize(),
-                    DEPARTMENT_BUCKET,
-                    key,
-                    file.getFileType()
-            );
-
-        } catch (IOException e) {
-            throw new RuntimeException("Ошибка при копировании файла", e);
+        try {
+            minioFileService.copyObjectServerSide(DEPARTMENT_BUCKET, file.getStorageKey(), newKey);
+        } catch (Exception e) {
+            throw new RuntimeException("Ошибка при server-side копировании файла", e);
         }
 
         return mapToDto(fileRepo.save(copy));

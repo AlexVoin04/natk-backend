@@ -1,6 +1,8 @@
 package com.natk.natk_api.minio;
 
 import io.minio.BucketExistsArgs;
+import io.minio.CopyObjectArgs;
+import io.minio.CopySource;
 import io.minio.GetObjectArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
@@ -19,6 +21,7 @@ public class MinioFileService {
 
     private final MinioClient minioClient;
     private final MinioMetrics metrics;
+    private final SecureKeyGenerator keyGenerator;
 
     /**
      * Кеш существующих бакетов (без повторных обращений в MinIO)
@@ -95,11 +98,23 @@ public class MinioFileService {
         }
     }
 
-    public String generateUserFileKey(UUID userId, UUID fileId) {
-        return "user/%s/file/%s".formatted(userId, fileId);
+    public void copyObjectServerSide(String bucket, String sourceKey, String targetKey) throws Exception {
+        minioClient.copyObject(
+                CopyObjectArgs.builder()
+                        .bucket(bucket)
+                        .object(targetKey)
+                        .source(CopySource.builder().bucket(bucket).object(sourceKey).build())
+                        .build()
+        );
     }
 
-    public String generateDepartmentFileKey(UUID departmentId, UUID fileId) {
-        return "department/%s/file/%s".formatted(departmentId, fileId);
+    public String generateUserFileKey(UUID userId) {
+        String randomKey = keyGenerator.generate256BitKey();
+        return "user/%s/file/%s".formatted(userId, randomKey);
+    }
+
+    public String generateDepartmentFileKey(UUID departmentId) {
+        String randomKey = keyGenerator.generate256BitKey();
+        return "department/%s/file/%s".formatted(departmentId, randomKey);
     }
 }
