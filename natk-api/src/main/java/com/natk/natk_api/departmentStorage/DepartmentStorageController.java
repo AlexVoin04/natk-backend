@@ -24,6 +24,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import java.io.IOException;
 import java.util.List;
@@ -100,9 +101,7 @@ public class DepartmentStorageController {
             @RequestParam(value = "folderId", required = false) UUID folderId,
             @RequestPart("fileData") MultipartFile fileData
     ) throws IOException {
-        byte[] bytes = fileData.getBytes();
-        long size = fileData.getSize();
-        UploadFileDto dto = new UploadFileDto(name, folderId, bytes, size);
+        UploadFileDto dto = new UploadFileDto(name, folderId, fileData.getInputStream(), fileData.getSize());
         return departmentFileService.uploadFile(dto, departmentId);
     }
 
@@ -166,17 +165,16 @@ public class DepartmentStorageController {
 
     @GetMapping("/files/{id}/download")
     @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'ACCESS')")
-    public ResponseEntity<byte[]> downloadFile(
+    public ResponseEntity<StreamingResponseBody> downloadFile(
             @PathVariable UUID departmentId,
             @PathVariable UUID id
     ) {
         FileDownloadDto dto = departmentFileService.getFileDownloadData(id, departmentId);
-
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=\"" + dto.translitName() + "\"; filename*=UTF-8''" + dto.encodedName())
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .body(dto.fileData());
+                .body(dto.body());
     }
 
     @PostMapping("/files/{id}/copy")

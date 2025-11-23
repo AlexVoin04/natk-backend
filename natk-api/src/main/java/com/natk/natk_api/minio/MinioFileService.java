@@ -1,61 +1,120 @@
 package com.natk.natk_api.minio;
 
 import io.minio.BucketExistsArgs;
+import io.minio.CopyObjectArgs;
+import io.minio.CopySource;
 import io.minio.GetObjectArgs;
-import io.minio.GetObjectResponse;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
 public class MinioFileService {
 
     private final MinioClient minioClient;
+    private final MinioMetrics metrics;
+    private final SecureKeyGenerator keyGenerator;
 
-    public void uploadFile(byte[] data, String bucket, String objectKey, String initialMimeType) {
-        try {
-            if (!minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucket).build())) {
-                minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucket).build());
+    /**
+     * Кеш существующих бакетов (без повторных обращений в MinIO)
+     */
+    private final ConcurrentHashMap<String, Boolean> bucketCache = new ConcurrentHashMap<>();
+
+    private void ensureBucketExists(String bucket) {
+        bucketCache.computeIfAbsent(bucket, b -> {
+            try {
+                boolean exists = minioClient.bucketExists(
+                        BucketExistsArgs.builder().bucket(b).build()
+                );
+
+                if (!exists) {
+                    minioClient.makeBucket(
+                            MakeBucketArgs.builder().bucket(b).build()
+                    );
+                }
+
+                return true;
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to create/check MinIO bucket: " + b, e);
             }
+        });
+    }
 
+    public void uploadFile(InputStream stream, long size, String bucket, String objectKey, String initialMimeType) {
+        ensureBucketExists(bucket);
 
+        long start = System.currentTimeMillis();
+        try {
             minioClient.putObject(
                     PutObjectArgs.builder()
                             .bucket(bucket)
                             .object(objectKey)
-                            .stream(new ByteArrayInputStream(data), data.length, -1)
+                            .stream(stream, size, -1)
                             .contentType(initialMimeType)
                             .build()
             );
+
+            long took = System.currentTimeMillis() - start;
+            metrics.recordUpload(size, took);
         } catch (Exception e) {
+            metrics.recordError();
             throw new RuntimeException("Не удалось загрузить файл в MinIO", e);
         }
     }
 
-    public byte[] downloadFile(String bucket, String objectKey) {
-        try (GetObjectResponse response = minioClient.getObject(
-                GetObjectArgs.builder()
-                        .bucket(bucket)
-                        .object(objectKey)
-                        .build()
-        )) {
-            return response.readAllBytes();
+    public InputStream downloadFile(String bucket, String objectKey) {
+        long start = System.currentTimeMillis();
+        try {
+            InputStream is = minioClient.getObject(
+                    GetObjectArgs.builder()
+                            .bucket(bucket)
+                            .object(objectKey)
+                            .build()
+            );
+
+            long took = System.currentTimeMillis() - start;
+            metrics.recordDownload(took);
+
+            return is;
         } catch (Exception e) {
+            metrics.recordError();
             throw new RuntimeException("Не удалось скачать файл из MinIO", e);
         }
     }
 
-    public String generateUserFileKey(UUID userId, UUID fileId) {
-        return "user/%s/file/%s".formatted(userId, fileId);
+    public byte[] downloadFileAsBytes(String bucket, String objectKey) {
+        try (InputStream is = downloadFile(bucket, objectKey)) {
+            return is.readAllBytes();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to download file into memory", e);
+        }
     }
 
-    public String generateDepartmentFileKey(UUID departmentId, UUID fileId) {
-        return "department/%s/file/%s".formatted(departmentId, fileId);
+    public void copyObjectServerSide(String bucket, String sourceKey, String targetKey) throws Exception {
+        minioClient.copyObject(
+                CopyObjectArgs.builder()
+                        .bucket(bucket)
+                        .object(targetKey)
+                        .source(CopySource.builder().bucket(bucket).object(sourceKey).build())
+                        .build()
+        );
+    }
+
+    public String generateUserFileKey(UUID userId) {
+        String randomKey = keyGenerator.generate256BitKey();
+        return "user/%s/file/%s".formatted(userId, randomKey);
+    }
+
+    public String generateDepartmentFileKey(UUID departmentId) {
+        String randomKey = keyGenerator.generate256BitKey();
+        return "department/%s/file/%s".formatted(departmentId, randomKey);
     }
 }

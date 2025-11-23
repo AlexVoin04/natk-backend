@@ -99,7 +99,7 @@ public class QuestionGenerationService {
                              MultipartBodyBuilder bodyBuilder,
                              List<FailedFileInfo> failedFiles) {
 
-        byte[] fileData = minioFileService.downloadFile("user-files", file.getStorageKey());
+        byte[] fileData = minioFileService.downloadFileAsBytes("user-files", file.getStorageKey());
         String mimeType = mimeTypeValidatorService.detectMimeType(fileData, file.getName());
 
         if (mimeType.equals("application/pdf")) {
