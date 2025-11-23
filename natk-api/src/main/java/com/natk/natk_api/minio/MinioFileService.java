@@ -11,20 +11,45 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
 public class MinioFileService {
 
     private final MinioClient minioClient;
+    private final MinioMetrics metrics;
+
+    /**
+     * Кеш существующих бакетов (без повторных обращений в MinIO)
+     */
+    private final ConcurrentHashMap<String, Boolean> bucketCache = new ConcurrentHashMap<>();
+
+    private void ensureBucketExists(String bucket) {
+        bucketCache.computeIfAbsent(bucket, b -> {
+            try {
+                boolean exists = minioClient.bucketExists(
+                        BucketExistsArgs.builder().bucket(b).build()
+                );
+
+                if (!exists) {
+                    minioClient.makeBucket(
+                            MakeBucketArgs.builder().bucket(b).build()
+                    );
+                }
+
+                return true;
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to create/check MinIO bucket: " + b, e);
+            }
+        });
+    }
 
     public void uploadFile(InputStream stream, long size, String bucket, String objectKey, String initialMimeType) {
+        ensureBucketExists(bucket);
+
+        long start = System.currentTimeMillis();
         try {
-            if (!minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucket).build())) {
-                minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucket).build());
-            }
-
-
             minioClient.putObject(
                     PutObjectArgs.builder()
                             .bucket(bucket)
@@ -33,20 +58,31 @@ public class MinioFileService {
                             .contentType(initialMimeType)
                             .build()
             );
+
+            long took = System.currentTimeMillis() - start;
+            metrics.recordUpload(size, took);
         } catch (Exception e) {
+            metrics.recordError();
             throw new RuntimeException("Не удалось загрузить файл в MinIO", e);
         }
     }
 
     public InputStream downloadFile(String bucket, String objectKey) {
+        long start = System.currentTimeMillis();
         try {
-            return minioClient.getObject(
+            InputStream is = minioClient.getObject(
                     GetObjectArgs.builder()
                             .bucket(bucket)
                             .object(objectKey)
                             .build()
             );
+
+            long took = System.currentTimeMillis() - start;
+            metrics.recordDownload(took);
+
+            return is;
         } catch (Exception e) {
+            metrics.recordError();
             throw new RuntimeException("Не удалось скачать файл из MinIO", e);
         }
     }

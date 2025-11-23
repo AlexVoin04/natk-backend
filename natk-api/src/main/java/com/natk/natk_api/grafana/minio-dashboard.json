@@ -1,0 +1,35 @@
+{
+  "title": "MinIO Metrics",
+  "panels": [
+    {
+      "type": "graph",
+      "title": "Upload Time (ms)",
+      "targets": [
+        { "expr": "rate(minio_upload_time_sum[1m]) / rate(minio_upload_time_count[1m])" }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "Download Time (ms)",
+      "targets": [
+        { "expr": "rate(minio_download_time_sum[1m]) / rate(minio_download_time_count[1m])" }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "Upload Bytes",
+      "targets": [
+        { "expr": "rate(minio_upload_bytes[1m])" }
+      ]
+    },
+    {
+      "type": "graph",
+      "title": "Upload Errors",
+      "targets": [
+        { "expr": "rate(minio_upload_errors[1m])" }
+      ]
+    }
+  ],
+  "schemaVersion": 36,
+  "version": 1
+}
