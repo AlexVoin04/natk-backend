@@ -7,14 +7,19 @@ import io.minio.GetObjectArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
+import io.minio.RemoveObjectArgs;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MinioFileService {
@@ -71,6 +76,8 @@ public class MinioFileService {
     }
 
     public InputStream downloadFile(String bucket, String objectKey) {
+        ensureBucketExists(bucket);
+
         long start = System.currentTimeMillis();
         try {
             InputStream is = minioClient.getObject(
@@ -87,6 +94,32 @@ public class MinioFileService {
         } catch (Exception e) {
             metrics.recordError();
             throw new RuntimeException("Не удалось скачать файл из MinIO", e);
+        }
+    }
+
+    public void deleteFile(String bucket, String objectKey) {
+        ensureBucketExists(bucket);
+
+        try {
+            minioClient.removeObject(
+                    RemoveObjectArgs.builder()
+                            .bucket(bucket)
+                            .object(objectKey)
+                            .build()
+            );
+        } catch (Exception e) {
+            metrics.recordError();
+            throw new RuntimeException("Не удалось удалить файл из MinIO: " + bucket + "/" + objectKey, e);
+        }
+    }
+
+    public void deleteFiles(String bucket, List<String> keys) {
+        for (String key : keys) {
+            try {
+                deleteFile(bucket, key);
+            } catch (Exception ex) {
+                log.error("Не удалось удалить файл {} из MinIO", key, ex);
+            }
         }
     }
 

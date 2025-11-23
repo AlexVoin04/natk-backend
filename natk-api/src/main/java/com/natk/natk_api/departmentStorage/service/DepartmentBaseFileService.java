@@ -205,14 +205,14 @@ public class DepartmentBaseFileService extends BaseFileService<
         DepartmentContext dCtx = (DepartmentContext) ctx;
         DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
 
+        fileNameResolverService.ensureUniqueNameOrThrow(dto.name(), folder, dept);
+
         MagicValidationResult res = mimeTypeValidatorService.validate(dto.fileData(), dto.name());
 
         InputStream fullStream = new SequenceInputStream(
                 new ByteArrayInputStream(res.header()),
                 dto.fileData()
         );
-
-        fileNameResolverService.ensureUniqueNameOrThrow(dto.name(), folder, dept);
 
         DepartmentFileEntity file = new DepartmentFileEntity();
         file.setName(dto.name());

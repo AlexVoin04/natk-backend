@@ -26,29 +26,18 @@ public class ClamAVClientService {
      *
      * @param inputStream поток файла
      * @throws IOException если соединение с ClamAV не удалось
-     * @throws VirusFoundException если найден вирус
      */
-    public void scan(InputStream inputStream) throws IOException, VirusFoundException {
+    public ScanResult scan(InputStream inputStream) throws IOException {
         try {
-            ScanResult scanResult = clamavClient.scan(inputStream);
-
-            if (scanResult instanceof ScanResult.OK) {
-                return;
-            }
-
-            if (scanResult instanceof ScanResult.VirusFound virusResult) {
-                throw new VirusFoundException(
-                        "Обнаружены вирусы: " + virusResult.getFoundViruses()
-                );
-            }
-
-            throw new IOException("Неизвестный тип ответа ClamAV: " + scanResult.getClass().getSimpleName());
-
+            return clamavClient.scan(inputStream);
         } catch (ClamavException e) {
             throw new IOException("Ошибка ClamAV: " + e.getMessage(), e);
         }
     }
 
+    /**
+     * Исключение бизнес-логики — кидаем его вручную после scanResult
+     */
     public static class VirusFoundException extends RuntimeException {
         public VirusFoundException(String message) {
             super(message);
