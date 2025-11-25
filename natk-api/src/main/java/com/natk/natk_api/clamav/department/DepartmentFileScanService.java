@@ -1,9 +1,9 @@
-package com.natk.natk_api.clamav;
+package com.natk.natk_api.clamav.department;
 
 import com.natk.natk_api.baseStorage.FileStatus;
+import com.natk.natk_api.departmentStorage.model.DepartmentFileEntity;
+import com.natk.natk_api.departmentStorage.repository.DepartmentFileRepository;
 import com.natk.natk_api.minio.MinioFileService;
-import com.natk.natk_api.userStorage.model.UserFileEntity;
-import com.natk.natk_api.userStorage.repository.UserFileRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -14,18 +14,18 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class FileScanService {
+public class DepartmentFileScanService {
 
-    private final UserFileRepository fileRepo;
+    private final DepartmentFileRepository fileRepo;
     private final MinioFileService minio;
 
     @Transactional
     public void markClean(UUID id) {
         try {
-            UserFileEntity file = getFileOrThrow(id);
+            DepartmentFileEntity file = getFileOrThrow(id);
 
-            String newKey = minio.generateUserFileKey(file.getCreatedBy().getId());
-            minio.copyObjectServerSide("incoming", file.getStorageKey(), "user-files", newKey);
+            String newKey = minio.generateDepartmentFileKey(file.getDepartment().getId());
+            minio.copyObjectServerSide("incoming", file.getStorageKey(), "department-files", newKey);
             minio.deleteFile("incoming", file.getStorageKey());
 
             file.setStorageKey(newKey);
@@ -40,7 +40,7 @@ public class FileScanService {
     @Transactional
     public void markInfected(UUID id, String virusName) {
         try {
-            UserFileEntity file = getFileOrThrow(id);
+            DepartmentFileEntity file = getFileOrThrow(id);
             file.setStatus(FileStatus.INFECTED);
             minio.deleteFile("incoming", file.getStorageKey());
             fileRepo.save(file);
@@ -53,18 +53,18 @@ public class FileScanService {
     @Transactional
     public void markError(UUID id, String errorMessage) {
         try {
-            UserFileEntity file = fileRepo.findById(id).orElse(null);
+            DepartmentFileEntity file = fileRepo.findById(id).orElse(null);
             if (file == null) return;
 
             file.setStatus(FileStatus.ERROR);
             fileRepo.save(file);
-            log.info("Error antntivirus: {}", errorMessage);
+            log.info("Error antivirus: {}", errorMessage);
         } catch (Exception e) {
             log.error("markError failed for {}", id, e);
         }
     }
 
-    private UserFileEntity getFileOrThrow(UUID id) {
+    private DepartmentFileEntity getFileOrThrow(UUID id) {
         return fileRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("File not found: " + id));
     }

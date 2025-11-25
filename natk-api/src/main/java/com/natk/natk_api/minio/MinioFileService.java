@@ -162,11 +162,16 @@ public class MinioFileService {
 
     public String generateIncomingUserFileKey(UUID userId) {
         String randomKey = keyGenerator.generate256BitKey();
-        return "incoming/%s/file/%s".formatted(userId, randomKey);
+        return "incoming/user/%s/file/%s".formatted(userId, randomKey);
     }
 
     public String generateDepartmentFileKey(UUID departmentId) {
         String randomKey = keyGenerator.generate256BitKey();
         return "department/%s/file/%s".formatted(departmentId, randomKey);
+    }
+
+    public String generateIncomingDepartmentFileKey(UUID departmentId) {
+        String randomKey = keyGenerator.generate256BitKey();
+        return "incoming/department/%s/file/%s".formatted(departmentId, randomKey);
     }
 }

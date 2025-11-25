@@ -23,6 +23,8 @@ import com.natk.natk_api.users.model.UserEntity;
 import com.natk.natk_api.users.service.CurrentUserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import org.springframework.web.util.UriUtils;
 
@@ -177,15 +179,20 @@ public class UserBaseFileService extends BaseFileService<UserFileEntity, UserFol
 
         minioFileService.uploadFile(fullStream, dto.size(), "incoming", quarantineKey, res.mimeType());
 
-        fileRepo.save(file);
+        UserFileEntity saved = fileRepo.save(file);
 
-        scanTaskPublisher.publish(new ScanTask(
-                file.getId(),
-                quarantineKey,
-                user.getId()
-        ));
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    scanTaskPublisher.publish(new ScanTask(saved.getId(), quarantineKey, user.getId(), ScanTask.OriginType.USER, null));
+                }
+            });
+        } else {
+            scanTaskPublisher.publish(new ScanTask(saved.getId(), quarantineKey, user.getId(), ScanTask.OriginType.USER, null));
+        }
 
-        return fileMapper.toDto(file);
+        return mapToDto(saved);
     }
 
     @Override

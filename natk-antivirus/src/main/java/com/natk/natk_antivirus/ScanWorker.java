@@ -23,9 +23,9 @@ public class ScanWorker {
     private final MinioService minio;
     private final FileStatusUpdater updater;
 
-    @RabbitListener(queues = RabbitConfig.QUEUE)
+    @RabbitListener(queues = RabbitConfig.QUEUE , containerFactory = "rabbitListenerContainerFactory")
     public void process(ScanTask task) {
-
+        log.info("ScanWorker got task: {}", task);
         try (InputStream is = minio.download("incoming", task.storageKey())) {
 
             ScanResult result = clam.scan(is);
@@ -39,16 +39,20 @@ public class ScanWorker {
 
                 log.info("File {} infected: {}", task.fileId(), virus);
 
-                updater.markInfected(task.fileId(), virus);
+                updater.markInfected(task.fileId(), virus, task.originType());
                 return;
             }
 
             log.info("File {} clean", task.fileId());
-            updater.markClean(task.fileId(), task.storageKey());
+            updater.markClean(task.fileId(), task.originType());
 
         } catch (Exception e) {
-            log.error("Error processing scan for file {}", task.fileId(), e);
-            updater.markError(task.fileId(), e.getMessage());
+            log.error("Error processing scan for file {}: {}", task.fileId(), e.getMessage(), e);
+            try {
+                updater.markError(task.fileId(), e.getMessage(), task.originType());
+            } catch (Exception ex) {
+                log.error("Failed to report error to API for file {}: {}", task.fileId(), ex.getMessage(), ex);
+            }
         }
     }
 }
