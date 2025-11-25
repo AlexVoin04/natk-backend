@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
 
+//TODO: проверить как работает
 @EnableRetry
 @Service
 @RequiredArgsConstructor

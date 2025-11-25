@@ -32,7 +32,7 @@ services:
       - natk-net
 
   natk-api:
-    image: 'natk-api:0.2.6'
+    image: 'natk-api:0.2.7'
     build: ./natk-api
     environment:
       - DB_NAME=${DB_NAME}
@@ -50,6 +50,10 @@ services:
       - MINIO_URL=${MINIO_URL}
       - CLAMAV_HOST=${CLAMAV_HOST}
       - CLAMAV_PORT=${CLAMAV_PORT}
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_PASS=${RABBITMQ_DEFAULT_PASS}
 #      - SPRING_PROFILES_ACTIVE=migration для перехода на минио
     ports:
       - "8000:8080"
@@ -57,6 +61,29 @@ services:
       - db
       - natk-auth
       - clamav
+      - rabbitmq
+    networks:
+      - natk-net
+
+  natk-antivirus:
+    image: 'natk-antivirus:0.0.1'
+    build: ./natk-antivirus
+    environment:
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_PASS=${RABBITMQ_DEFAULT_PASS}
+      - MINIO_URL=${MINIO_URL}
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - CLAMAV_HOST=${CLAMAV_HOST}
+      - CLAMAV_PORT=${CLAMAV_PORT}
+      - NATK_API_INTERNAL_URL=${API_SERVICE_URL}
+    depends_on:
+      - rabbitmq
+      - clamav
+      - minio
+      - natk-api
     networks:
       - natk-net
 
@@ -114,6 +141,18 @@ services:
       test: [ "CMD", "nc", "-z", "localhost", "3310" ]
       interval: 5s
       retries: 12
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: natk-rabbit
+    ports:
+      - "5672:5672"       # AMQP
+      - "15672:15672"     # Web panel
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+    networks:
+      - natk-net
 
 volumes:
   pgdata:

@@ -1,5 +1,6 @@
 package com.natk.natk_api.userStorage.service;
 
+import com.natk.natk_api.baseStorage.FileStatus;
 import com.natk.natk_api.baseStorage.MagicValidationResult;
 import com.natk.natk_api.baseStorage.context.StorageContext;
 import com.natk.natk_api.baseStorage.context.UserContext;
@@ -7,9 +8,10 @@ import com.natk.natk_api.baseStorage.service.BaseFileService;
 import com.natk.natk_api.baseStorage.dto.FileDownloadDto;
 import com.natk.natk_api.baseStorage.service.MimeTypeValidatorService;
 import com.natk.natk_api.baseStorage.service.TransliterationService;
-import com.natk.natk_api.clamav.ClamAVClientService;
 import com.natk.natk_api.exception.FileOrFolderNotFoundOrNoAccessException;
 import com.natk.natk_api.minio.MinioFileService;
+import com.natk.common.messaging.ScanTask;
+import com.natk.natk_api.rabbit.ScanTaskPublisher;
 import com.natk.natk_api.userStorage.dto.FileInfoDto;
 import com.natk.natk_api.baseStorage.dto.UploadFileDto;
 import com.natk.natk_api.userStorage.mapper.UserFileMapper;
@@ -23,16 +25,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import org.springframework.web.util.UriUtils;
-import xyz.capybara.clamav.commands.scan.result.ScanResult;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.SequenceInputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -46,7 +43,7 @@ public class UserBaseFileService extends BaseFileService<UserFileEntity, UserFol
     private final MimeTypeValidatorService mimeTypeValidatorService;
     private final TransliterationService transliterationService;
     private final MinioFileService minioFileService;
-    private final ClamAVClientService clamAVClientService;
+    private final ScanTaskPublisher scanTaskPublisher;
     private static final String USER_BUCKET = "user-files";
 
     public UserBaseFileService(
@@ -56,7 +53,9 @@ public class UserBaseFileService extends BaseFileService<UserFileEntity, UserFol
             UserFileMapper fileMapper,
             UserFileNameResolverService fileNameResolverService,
             MimeTypeValidatorService mimeTypeValidatorService,
-            TransliterationService transliterationService, MinioFileService minioFileService, ClamAVClientService clamAVClientService
+            TransliterationService transliterationService,
+            MinioFileService minioFileService,
+            ScanTaskPublisher scanTaskPublisher
     ) {
         super(fileRepo, folderRepo);
         this.currentUserService = currentUserService;
@@ -65,7 +64,7 @@ public class UserBaseFileService extends BaseFileService<UserFileEntity, UserFol
         this.mimeTypeValidatorService = mimeTypeValidatorService;
         this.transliterationService = transliterationService;
         this.minioFileService = minioFileService;
-        this.clamAVClientService = clamAVClientService;
+        this.scanTaskPublisher = scanTaskPublisher;
     }
 
     protected UserContext getContext(){
@@ -155,53 +154,38 @@ public class UserBaseFileService extends BaseFileService<UserFileEntity, UserFol
 
         fileNameResolverService.ensureUniqueNameOrThrow(dto.name(), folder, user);
 
-        Path tempFile = null;
-        try {
-            tempFile = Files.createTempFile("upload-", "-" + dto.name());
-            // Копируем поток MultipartFile в временный файл
-            try (InputStream input = dto.fileData()) {
-                Files.copy(input, tempFile, StandardCopyOption.REPLACE_EXISTING);
-            }
+        MagicValidationResult res = mimeTypeValidatorService.validate(dto.fileData(), dto.name());
 
-            // Валидируем MIME
-            MagicValidationResult res = mimeTypeValidatorService.validate(Files.newInputStream(tempFile), dto.name());
+        String quarantineKey = minioFileService.generateIncomingUserFileKey(user.getId());
 
-            // Сканируем на вирусы
-            ScanResult scanResult = clamAVClientService.scan(Files.newInputStream(tempFile));
-            if (scanResult instanceof ScanResult.VirusFound virusFound) {
-                throw new ClamAVClientService.VirusFoundException("Вирусы: " + virusFound.getFoundViruses());
-            }
+        InputStream fullStream = new SequenceInputStream(
+                new ByteArrayInputStream(res.header()),
+                dto.fileData()
+        );
 
-            // Готовим к MinIO
-            try (InputStream minioStream = Files.newInputStream(tempFile)) {
-                UserFileEntity file = new UserFileEntity();
-                file.setName(dto.name());
-                file.setFolder(folder);
-                file.setFileType(res.mimeType());
-                file.setCreatedBy(user);
-                file.setCreatedAt(Instant.now());
-                file.setDeleted(false);
-                file.setDeletedAt(null);
-                file.setFileSize(dto.size());
+        UserFileEntity file = new UserFileEntity();
+        file.setName(dto.name());
+        file.setFolder(folder);
+        file.setFileType(res.mimeType());
+        file.setCreatedBy(user);
+        file.setCreatedAt(Instant.now());
+        file.setDeleted(false);
+        file.setDeletedAt(null);
+        file.setFileSize(dto.size());
+        file.setStorageKey(quarantineKey);
+        file.setStatus(FileStatus.UPLOADED_PENDING_SCAN);
 
-                String key = minioFileService.generateUserFileKey(user.getId());
-                file.setStorageKey(key);
+        minioFileService.uploadFile(fullStream, dto.size(), "incoming", quarantineKey, res.mimeType());
 
-                minioFileService.uploadFile(minioStream, dto.size(), USER_BUCKET, key, res.mimeType());
+        fileRepo.save(file);
 
-                return fileMapper.toDto(fileRepo.save(file));
-            }
+        scanTaskPublisher.publish(new ScanTask(
+                file.getId(),
+                quarantineKey,
+                user.getId()
+        ));
 
-        } catch (IOException e) {
-            throw new RuntimeException("Ошибка обработки файла", e);
-        } finally {
-            // Удаляем временный файл
-            if (tempFile != null) {
-                try {
-                    Files.deleteIfExists(tempFile);
-                } catch (IOException ignored) {}
-            }
-        }
+        return fileMapper.toDto(file);
     }
 
     @Override
@@ -274,6 +258,7 @@ public class UserBaseFileService extends BaseFileService<UserFileEntity, UserFol
         copy.setDeleted(false);
         copy.setFileType(file.getFileType());
         copy.setFileSize(file.getFileSize());
+        copy.setStatus(file.getStatus());
 
         String newKey  = minioFileService.generateUserFileKey(user.getId());
         copy.setStorageKey(newKey);
