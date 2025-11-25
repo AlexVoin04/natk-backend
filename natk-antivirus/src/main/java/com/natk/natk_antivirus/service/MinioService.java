@@ -2,7 +2,6 @@ package com.natk.natk_antivirus.service;
 
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 

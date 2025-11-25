@@ -141,6 +141,20 @@ public class MinioFileService {
         );
     }
 
+    public void copyObjectServerSide(String sourceBucket, String sourceKey,
+                                     String targetBucket, String targetKey) throws Exception {
+        minioClient.copyObject(
+                CopyObjectArgs.builder()
+                        .bucket(targetBucket)
+                        .object(targetKey)
+                        .source(CopySource.builder()
+                                .bucket(sourceBucket)
+                                .object(sourceKey)
+                                .build())
+                        .build()
+        );
+    }
+
     public String generateUserFileKey(UUID userId) {
         String randomKey = keyGenerator.generate256BitKey();
         return "user/%s/file/%s".formatted(userId, randomKey);

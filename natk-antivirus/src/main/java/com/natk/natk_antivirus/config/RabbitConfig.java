@@ -1,4 +1,4 @@
-package com.natk.natk_antivirus;
+package com.natk.natk_antivirus.config;
 
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
