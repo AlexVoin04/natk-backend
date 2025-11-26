@@ -24,12 +24,13 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class MinioFileService {
 
+    private final MinioRetryableService retryable;
     private final MinioClient minioClient;
     private final MinioMetrics metrics;
     private final SecureKeyGenerator keyGenerator;
 
     /**
-     * Кеш существующих бакетов (без повторных обращений в MinIO)
+     * Кеш существующих Бакетов (без повторных обращений в MinIO)
      */
     private final ConcurrentHashMap<String, Boolean> bucketCache = new ConcurrentHashMap<>();
 
@@ -58,7 +59,7 @@ public class MinioFileService {
 
         long start = System.currentTimeMillis();
         try {
-            minioClient.putObject(
+            retryable.putObject(
                     PutObjectArgs.builder()
                             .bucket(bucket)
                             .object(objectKey)
@@ -80,7 +81,7 @@ public class MinioFileService {
 
         long start = System.currentTimeMillis();
         try {
-            InputStream is = minioClient.getObject(
+            InputStream is = retryable.getObject(
                     GetObjectArgs.builder()
                             .bucket(bucket)
                             .object(objectKey)
@@ -101,7 +102,7 @@ public class MinioFileService {
         ensureBucketExists(bucket);
 
         try {
-            minioClient.removeObject(
+            retryable.removeObject(
                     RemoveObjectArgs.builder()
                             .bucket(bucket)
                             .object(objectKey)
@@ -132,7 +133,7 @@ public class MinioFileService {
     }
 
     public void copyObjectServerSide(String bucket, String sourceKey, String targetKey) throws Exception {
-        minioClient.copyObject(
+        retryable.copyObject(
                 CopyObjectArgs.builder()
                         .bucket(bucket)
                         .object(targetKey)
@@ -143,7 +144,7 @@ public class MinioFileService {
 
     public void copyObjectServerSide(String sourceBucket, String sourceKey,
                                      String targetBucket, String targetKey) throws Exception {
-        minioClient.copyObject(
+        retryable.copyObject(
                 CopyObjectArgs.builder()
                         .bucket(targetBucket)
                         .object(targetKey)
