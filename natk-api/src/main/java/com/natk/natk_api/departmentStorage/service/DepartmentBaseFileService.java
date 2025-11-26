@@ -1,10 +1,9 @@
 package com.natk.natk_api.departmentStorage.service;
 
 
-import com.natk.natk_api.baseStorage.FileStatus;
-import com.natk.natk_api.baseStorage.MagicValidationResult;
 import com.natk.natk_api.baseStorage.context.DepartmentContext;
 import com.natk.natk_api.baseStorage.context.StorageContext;
+import com.natk.natk_api.baseStorage.intarfece.UploadStrategy;
 import com.natk.natk_api.baseStorage.service.BaseFileService;
 import com.natk.natk_api.department.model.DepartmentEntity;
 import com.natk.natk_api.department.permission.DepartmentAccessService;
@@ -26,15 +25,10 @@ import com.natk.natk_api.users.service.CurrentUserService;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import org.springframework.web.util.UriUtils;
-import com.natk.common.messaging.ScanTask;
 
-import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.io.SequenceInputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
@@ -46,18 +40,18 @@ public class DepartmentBaseFileService extends BaseFileService<
         DepartmentFolderEntity,
         DepartmentFileRepository,
         DepartmentFolderRepository,
-        DepartmentFileInfoDto> {
+        DepartmentFileInfoDto,
+        DepartmentEntity> {
 
     private final DepartmentFileRepository fileRepo;
     private final DepartmentFolderRepository folderRepo;
     private final DepartmentFileNameResolverService fileNameResolverService;
-    private final MimeTypeValidatorService mimeTypeValidatorService;
     private final TransliterationService transliterationService;
     private final CurrentUserService currentUserService;
     private final DepartmentAccessService departmentAccessService;
     private final DepartmentFileMapper departmentFileMapper;
     private final MinioFileService minioFileService;
-    private final ScanTaskPublisher scanTaskPublisher;
+    private final DepartmentUploadStrategy departmentUploadStrategy;
     private static final String DEPARTMENT_BUCKET = "department-files";
 
     public DepartmentBaseFileService(
@@ -68,19 +62,18 @@ public class DepartmentBaseFileService extends BaseFileService<
             TransliterationService transliterationService,
             CurrentUserService currentUserService,
             DepartmentAccessService departmentAccessService,
-            DepartmentFileMapper departmentFileMapper, MinioFileService minioFileService, ScanTaskPublisher scanTaskPublisher
+            DepartmentFileMapper departmentFileMapper, MinioFileService minioFileService, ScanTaskPublisher scanTaskPublisher, DepartmentUploadStrategy departmentUploadStrategy, ScanTaskPublisher scanTaskPublisher1
     ) {
-        super(fileRepo, folderRepo);
+        super(fileRepo, folderRepo, scanTaskPublisher);
         this.fileRepo = fileRepo;
         this.folderRepo = folderRepo;
         this.fileNameResolverService = fileNameResolverService;
-        this.mimeTypeValidatorService = mimeTypeValidatorService;
         this.transliterationService = transliterationService;
         this.currentUserService = currentUserService;
         this.departmentAccessService = departmentAccessService;
         this.departmentFileMapper = departmentFileMapper;
         this.minioFileService = minioFileService;
-        this.scanTaskPublisher = scanTaskPublisher;
+        this.departmentUploadStrategy = departmentUploadStrategy;
     }
 
     @Transactional
@@ -208,49 +201,8 @@ public class DepartmentBaseFileService extends BaseFileService<
     }
 
     @Override
-    protected DepartmentFileInfoDto applyUploadFile(UploadFileDto dto, DepartmentFolderEntity folder, StorageContext ctx) {
-        DepartmentContext dCtx = (DepartmentContext) ctx;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
-
-        fileNameResolverService.ensureUniqueNameOrThrow(dto.name(), folder, dept);
-
-        MagicValidationResult res = mimeTypeValidatorService.validate(dto.fileData(), dto.name());
-
-        String quarantineKey = minioFileService.generateIncomingDepartmentFileKey(dept.getId());
-
-        InputStream fullStream = new SequenceInputStream(
-                new ByteArrayInputStream(res.header()),
-                dto.fileData()
-        );
-
-        DepartmentFileEntity file = new DepartmentFileEntity();
-        file.setName(dto.name());
-        file.setFolder(folder);
-        file.setFileType(res.mimeType());
-        file.setDepartment(dept);
-        file.setCreatedBy(dCtx.user().getShortFio());
-        file.setCreatedAt(Instant.now());
-        file.setDeleted(false);
-        file.setFileSize(dto.size());
-        file.setStorageKey(quarantineKey);
-        file.setStatus(FileStatus.UPLOADED_PENDING_SCAN);
-
-        minioFileService.uploadFile(fullStream, dto.size(), "incoming", quarantineKey, res.mimeType());
-
-        DepartmentFileEntity saved = fileRepo.save(file);
-
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    scanTaskPublisher.publish(new ScanTask(saved.getId(), quarantineKey, dCtx.user().getId(), ScanTask.OriginType.DEPARTMENT, dept.getId()));
-                }
-            });
-        } else {
-            scanTaskPublisher.publish(new ScanTask(saved.getId(), quarantineKey, dCtx.user().getId(), ScanTask.OriginType.DEPARTMENT, dept.getId()));
-        }
-
-        return mapToDto(saved);
+    protected UploadStrategy<DepartmentFileEntity, DepartmentFolderEntity, DepartmentFileRepository, DepartmentEntity> getUploadStrategy() {
+        return departmentUploadStrategy;
     }
 
     @Override
