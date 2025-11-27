@@ -6,8 +6,11 @@ This repository contains a microservices architecture with:
 - **natk-auth** — Authentication and JWT handling service
 - **natk-pdf** — PDF conversion microservice
 - **natk-ai** — AI service integrating Gemini API
+- **natk-antivirus** — Antivirus scanner (ClamAV + RabbitMQ)
 - **PostgreSQL** — Database for persistence
 - **MinIO** — S3-compatible storage that stores files uploaded through NATK-API
+- **RabbitMQ** — Queue broker used for antivirus scanning 
+- **ClamAV** — Antivirus daemon used by natk-antivirus service
 
 ---
 # 📦 MinIO: S3-Compatible File Storage (with SSE-KMS Encryption)
@@ -101,6 +104,10 @@ docker build -t natk-auth:0.0.1 ./natk-auth
 ```shell
 docker build -t natk-api:0.0.9 ./natk-api
 ```
+>устарело
+```shell
+docker build -f natk-api/Dockerfile -t natk-api:0.2.9 .
+```
 
 📄 Build natk-pdf image
 ```shell
@@ -112,24 +119,77 @@ docker build -t natk-pdf:0.0.1 ./natk-pdf
 docker build -t natk-ai:0.0.3 ./natk-ai
 ```
 
+🛡 Build natk-antivirus
+```shell
+docker build -f natk-antivirus/Dockerfile -t natk-antivirus:0.0.3 .
+```
+
 ▶️ Run the containers
 ```shell
 docker-compose -f docker-compose.yml up
 ```
 
 ---
+# 🛡 Antivirus Architecture (RabbitMQ + ClamAV + natk-antivirus)
+
+NATK uses a distributed antivirus scanning architecture based on RabbitMQ and ClamAV.
+
+### 🔄 How Antivirus Workflow Works
+1. **User uploads a file** to NATK-API → file is placed into the `incoming` MinIO bucket.
+2. **natk-api** publishes a message into RabbitMQ queue `scan-file`.
+3. **natk-antivirus** receives the message and:
+   - downloads the file from MinIO
+   - streams it to **ClamAV** for scanning
+4. Based on scan result:
+   - ✔ Clean → file is moved to final MinIO storage
+   - ❌ Infected → file is deleted and marked as INFECTED
+   - ⚠ Error → file is marked as ERROR
+5. **natk-antivirus** notifies natk-api via internal REST callback.
+
+This allows **fully asynchronous, fault-tolerant, and scalable** antivirus scanning.
+___
+# 🐇 RabbitMQ — Message Broker for Antivirus
+
+RabbitMQ is used as the backbone for background file scanning.
+
+### Default RabbitMQ services:
+| Purpose	              | Component                 |
+|-----------------------|---------------------------|
+| Antivirus task queue	 | `scan-file` queue         |
+| RPC / retries	        | handled by natk-antivirus |
+| Monitoring	           | RabbitMQ Web UI           |
+
+### Exposed Ports:
+| Port	  | Meaning                              | 
+|--------|--------------------------------------|
+| 5672   | 	AMQP protocol (microservices queue) | 
+| 15672	 | RabbitMQ admin dashboard             | 
+___
+
+# 🦠 ClamAV — Antivirus Engine
+
+ClamAV runs in a dedicated container and exposes a TCP scanning port.
+
+### Used by natk-antivirus for:
+- Streaming file contents for virus scanning
+- Returning virus signatures like: `Win.Trojan.Generic-1234567-0`
+
+___
 
 ## 🔌 Default Ports
 
-| Service       | Host Port | Container Port |
-|---------------|-----------|----------------|
-| PostgreSQL    | 5432      | 5432           |
-| natk-auth     | 8001      | 8080           |
-| natk-api      | 8000      | 8080           |
-| natk-ai       | 8002      | 8080           |
-| natk-pdf      | 8003      | 8080           |
-| MinIO API     | 9000      | 9000           |
-| MinIO Console | 9001      | 9001           |
+| Service        | Host Port     | Container Port |
+|----------------|---------------|----------------|
+| PostgreSQL     | 5432          | 5432           |
+| natk-auth      | 8001          | 8080           |
+| natk-api       | 8000          | 8080           |
+| natk-ai        | 8002          | 8080           |
+| natk-pdf       | 8003          | 8080           |
+| natk-antivirus | internal only | 8080           |
+| MinIO API      | 9000          | 9000           |
+| MinIO Console  | 9001          | 9001           |
+| RabbitMQ       | 5672 / 15672  | 5672 / 15672   |
+| ClamAV         | 3310          | 3310           |
 
 ---
 
