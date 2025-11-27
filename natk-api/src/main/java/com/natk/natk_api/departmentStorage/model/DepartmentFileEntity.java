@@ -1,15 +1,8 @@
 package com.natk.natk_api.departmentStorage.model;
 
+import com.natk.natk_api.baseStorage.FileStatus;
 import com.natk.natk_api.department.model.DepartmentEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -64,4 +57,9 @@ public class DepartmentFileEntity {
 
     @Column(name = "file_size", nullable = false)
     private long fileSize;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "status", nullable = false, columnDefinition = "file_status")
+    private FileStatus status;
 }

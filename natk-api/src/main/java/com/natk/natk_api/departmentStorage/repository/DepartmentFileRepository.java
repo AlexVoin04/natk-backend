@@ -5,6 +5,7 @@ import com.natk.natk_api.departmentStorage.model.DepartmentFileEntity;
 import com.natk.natk_api.departmentStorage.model.DepartmentFolderEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,4 +25,6 @@ public interface DepartmentFileRepository extends JpaRepository<DepartmentFileEn
     List<DepartmentFileEntity> findByDepartmentAndFolderIsNullAndIsDeletedFalse(DepartmentEntity department);
 
     List<DepartmentFileEntity> findByDepartmentAndIsDeletedTrueOrderByDeletedAtDesc(DepartmentEntity department);
+
+    List<DepartmentFileEntity> findByIsDeletedTrueAndDeletedAtBefore(Instant cutoff);
 }

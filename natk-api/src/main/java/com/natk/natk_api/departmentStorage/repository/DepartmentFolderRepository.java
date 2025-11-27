@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -34,4 +35,6 @@ public interface DepartmentFolderRepository extends JpaRepository<DepartmentFold
         SELECT COUNT(1) > 0 FROM parents WHERE id = :ancestorId
         """, nativeQuery = true)
     boolean isAncestor(@Param("childId") UUID childId, @Param("ancestorId") UUID ancestorId);
+
+    List<DepartmentFolderEntity> findByIsDeletedTrueAndDeletedAtBefore(Instant cutoff);
 }

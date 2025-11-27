@@ -1,8 +1,11 @@
 package com.natk.natk_api.userStorage.model;
 
+import com.natk.natk_api.baseStorage.FileStatus;
 import com.natk.natk_api.users.model.UserEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
@@ -59,4 +62,9 @@ public class UserFileEntity {
 
     @Column(name = "file_size", nullable = false)
     private long fileSize;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "status", nullable = false, columnDefinition = "file_status")
+    private FileStatus status;
 }

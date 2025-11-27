@@ -1,5 +1,13 @@
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
+CREATE TYPE file_status AS ENUM (
+    'UPLOADED_PENDING_SCAN',
+    'SCANNING',
+    'READY',
+    'INFECTED',
+    'ERROR'
+);
+
 -- === Roles ===
 CREATE TABLE roles (
     id UUID PRIMARY KEY,
@@ -71,6 +79,7 @@ CREATE TABLE department_files (
     storage_key VARCHAR(500) NOT NULL,
     file_type VARCHAR(100),
     file_size BIGINT NOT NULL,
+    status file_status NOT NULL DEFAULT 'UPLOADED_PENDING_SCAN',
     is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
     deleted_at TIMESTAMP NULL,
     FOREIGN KEY (folder_id) REFERENCES department_folders(id) ON DELETE CASCADE,
@@ -111,6 +120,7 @@ CREATE TABLE user_files (
     storage_key VARCHAR(500) NOT NULL,
     file_type VARCHAR(100),
     file_size BIGINT NOT NULL,
+    status file_status NOT NULL DEFAULT 'UPLOADED_PENDING_SCAN',
     is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
     deleted_at TIMESTAMP NULL,
     FOREIGN KEY (folder_id) REFERENCES user_folders(id) ON DELETE CASCADE,

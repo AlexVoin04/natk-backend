@@ -7,24 +7,30 @@ import io.minio.GetObjectArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
+import io.minio.RemoveObjectArgs;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MinioFileService {
 
+    private final MinioRetryableService retryable;
     private final MinioClient minioClient;
     private final MinioMetrics metrics;
     private final SecureKeyGenerator keyGenerator;
 
     /**
-     * Кеш существующих бакетов (без повторных обращений в MinIO)
+     * Кеш существующих Бакетов (без повторных обращений в MinIO)
      */
     private final ConcurrentHashMap<String, Boolean> bucketCache = new ConcurrentHashMap<>();
 
@@ -53,7 +59,7 @@ public class MinioFileService {
 
         long start = System.currentTimeMillis();
         try {
-            minioClient.putObject(
+            retryable.putObject(
                     PutObjectArgs.builder()
                             .bucket(bucket)
                             .object(objectKey)
@@ -71,9 +77,11 @@ public class MinioFileService {
     }
 
     public InputStream downloadFile(String bucket, String objectKey) {
+        ensureBucketExists(bucket);
+
         long start = System.currentTimeMillis();
         try {
-            InputStream is = minioClient.getObject(
+            InputStream is = retryable.getObject(
                     GetObjectArgs.builder()
                             .bucket(bucket)
                             .object(objectKey)
@@ -90,6 +98,32 @@ public class MinioFileService {
         }
     }
 
+    public void deleteFile(String bucket, String objectKey) {
+        ensureBucketExists(bucket);
+
+        try {
+            retryable.removeObject(
+                    RemoveObjectArgs.builder()
+                            .bucket(bucket)
+                            .object(objectKey)
+                            .build()
+            );
+        } catch (Exception e) {
+            metrics.recordError();
+            throw new RuntimeException("Не удалось удалить файл из MinIO: " + bucket + "/" + objectKey, e);
+        }
+    }
+
+    public void deleteFiles(String bucket, List<String> keys) {
+        for (String key : keys) {
+            try {
+                deleteFile(bucket, key);
+            } catch (Exception ex) {
+                log.error("Не удалось удалить файл {} из MinIO", key, ex);
+            }
+        }
+    }
+
     public byte[] downloadFileAsBytes(String bucket, String objectKey) {
         try (InputStream is = downloadFile(bucket, objectKey)) {
             return is.readAllBytes();
@@ -99,11 +133,25 @@ public class MinioFileService {
     }
 
     public void copyObjectServerSide(String bucket, String sourceKey, String targetKey) throws Exception {
-        minioClient.copyObject(
+        retryable.copyObject(
                 CopyObjectArgs.builder()
                         .bucket(bucket)
                         .object(targetKey)
                         .source(CopySource.builder().bucket(bucket).object(sourceKey).build())
+                        .build()
+        );
+    }
+
+    public void copyObjectServerSide(String sourceBucket, String sourceKey,
+                                     String targetBucket, String targetKey) throws Exception {
+        retryable.copyObject(
+                CopyObjectArgs.builder()
+                        .bucket(targetBucket)
+                        .object(targetKey)
+                        .source(CopySource.builder()
+                                .bucket(sourceBucket)
+                                .object(sourceKey)
+                                .build())
                         .build()
         );
     }
@@ -113,8 +161,18 @@ public class MinioFileService {
         return "user/%s/file/%s".formatted(userId, randomKey);
     }
 
+    public String generateIncomingUserFileKey(UUID userId) {
+        String randomKey = keyGenerator.generate256BitKey();
+        return "incoming/user/%s/file/%s".formatted(userId, randomKey);
+    }
+
     public String generateDepartmentFileKey(UUID departmentId) {
         String randomKey = keyGenerator.generate256BitKey();
         return "department/%s/file/%s".formatted(departmentId, randomKey);
+    }
+
+    public String generateIncomingDepartmentFileKey(UUID departmentId) {
+        String randomKey = keyGenerator.generate256BitKey();
+        return "incoming/department/%s/file/%s".formatted(departmentId, randomKey);
     }
 }

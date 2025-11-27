@@ -13,10 +13,16 @@ services:
       - ./init-db/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - natk-net
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   natk-auth:
     image: 'natk-auth:0.0.1'
-    build: ./natk-auth
+    ports:
+      - "8001:8080"
     environment:
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
@@ -25,15 +31,15 @@ services:
       - DB_DRIVER=${DB_DRIVER}
       - JWT_SECRET=${JWT_SECRET}
     depends_on:
-      - db
-    ports:
-      - "8001:8080"
+      db:
+        condition: service_healthy
     networks:
       - natk-net
 
   natk-api:
-    image: 'natk-api:0.2.5'
-    build: ./natk-api
+    image: 'natk-api:0.2.9'
+    ports:
+      - "8000:8080"
     environment:
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
@@ -48,57 +54,116 @@ services:
       - PDF_SERVICE_URL=${PDF_SERVICE_URL}
       - AI_SERVICE_URL=${AI_SERVICE_URL}
       - MINIO_URL=${MINIO_URL}
+      - CLAMAV_HOST=${CLAMAV_HOST}
+      - CLAMAV_PORT=${CLAMAV_PORT}
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_PASS=${RABBITMQ_DEFAULT_PASS}
 #      - SPRING_PROFILES_ACTIVE=migration для перехода на минио
-    ports:
-      - "8000:8080"
     depends_on:
-      - db
-      - natk-auth
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - natk-net
+
+  natk-antivirus:
+    image: 'natk-antivirus:0.0.3'
+    environment:
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_PASS=${RABBITMQ_DEFAULT_PASS}
+      - MINIO_URL=${MINIO_URL}
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - CLAMAV_HOST=${CLAMAV_HOST}
+      - CLAMAV_PORT=${CLAMAV_PORT}
+      - NATK_API_INTERNAL_URL=${API_SERVICE_URL}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      clamav:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     networks:
       - natk-net
 
   natk-pdf:
     image: 'natk-pdf:0.0.1'
-    build: ./natk-pdf
+    ports:
+      - "8003:8080"
     environment:
       - SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE=${SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE}
       - SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE=${SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE}
-    ports:
-      - "8003:8080"
-    depends_on:
-      - natk-api
     networks:
       - natk-net
 
   natk-ai:
     image: 'natk-ai:0.0.3'
-    build: ./natk-ai
+    ports:
+      - "8002:8080"
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - GIGA_CHAT_API_KEY=${GIGA_CHAT_API_KEY}
-    ports:
-      - "8002:8080"
-    depends_on:
-      - natk-api
     networks:
       - natk-net
 
   minio:
     image: minio/minio:latest
     container_name: natk-minio
+    ports:
+      - "9000:9000"   # API
+      - "9001:9001"   # Web console
     environment:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
       - MINIO_KMS_SECRET_KEY=${MINIO_KMS_SECRET_KEY} # секретный ключ для KMS
       - MINIO_KMS_AUTO_ENCRYPTION=on
     command: server /data --console-address ":9001"
-    ports:
-      - "9000:9000"   # API
-      - "9001:9001"   # Web console
     volumes:
       - minio-data:/data
     networks:
       - natk-net
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/ready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  clamav:
+    image: clamav/clamav:latest
+    container_name: natk-clamav
+    ports:
+      - "3310:3310"
+    networks:
+      - natk-net
+    healthcheck:
+      test: [ "CMD", "nc", "-z", "localhost", "3310" ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: natk-rabbit
+    ports:
+      - "5672:5672"       # AMQP
+      - "15672:15672"     # Web panel
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+    networks:
+      - natk-net
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 
 volumes:
   pgdata:

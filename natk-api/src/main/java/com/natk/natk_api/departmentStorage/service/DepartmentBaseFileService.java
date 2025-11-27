@@ -1,9 +1,9 @@
 package com.natk.natk_api.departmentStorage.service;
 
 
-import com.natk.natk_api.baseStorage.MagicValidationResult;
 import com.natk.natk_api.baseStorage.context.DepartmentContext;
 import com.natk.natk_api.baseStorage.context.StorageContext;
+import com.natk.natk_api.baseStorage.intarfece.UploadStrategy;
 import com.natk.natk_api.baseStorage.service.BaseFileService;
 import com.natk.natk_api.department.model.DepartmentEntity;
 import com.natk.natk_api.department.permission.DepartmentAccessService;
@@ -19,6 +19,7 @@ import com.natk.natk_api.exception.FileOrFolderNotFoundOrNoAccessException;
 import com.natk.natk_api.minio.MinioFileService;
 import com.natk.natk_api.baseStorage.service.MimeTypeValidatorService;
 import com.natk.natk_api.baseStorage.service.TransliterationService;
+import com.natk.natk_api.rabbit.ScanTaskPublisher;
 import com.natk.natk_api.users.model.UserEntity;
 import com.natk.natk_api.users.service.CurrentUserService;
 import org.springframework.security.access.AccessDeniedException;
@@ -27,9 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import org.springframework.web.util.UriUtils;
 
-import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.io.SequenceInputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
@@ -41,17 +40,18 @@ public class DepartmentBaseFileService extends BaseFileService<
         DepartmentFolderEntity,
         DepartmentFileRepository,
         DepartmentFolderRepository,
-        DepartmentFileInfoDto> {
+        DepartmentFileInfoDto,
+        DepartmentEntity> {
 
     private final DepartmentFileRepository fileRepo;
     private final DepartmentFolderRepository folderRepo;
     private final DepartmentFileNameResolverService fileNameResolverService;
-    private final MimeTypeValidatorService mimeTypeValidatorService;
     private final TransliterationService transliterationService;
     private final CurrentUserService currentUserService;
     private final DepartmentAccessService departmentAccessService;
     private final DepartmentFileMapper departmentFileMapper;
     private final MinioFileService minioFileService;
+    private final DepartmentUploadStrategy departmentUploadStrategy;
     private static final String DEPARTMENT_BUCKET = "department-files";
 
     public DepartmentBaseFileService(
@@ -62,18 +62,18 @@ public class DepartmentBaseFileService extends BaseFileService<
             TransliterationService transliterationService,
             CurrentUserService currentUserService,
             DepartmentAccessService departmentAccessService,
-            DepartmentFileMapper departmentFileMapper, MinioFileService minioFileService
+            DepartmentFileMapper departmentFileMapper, MinioFileService minioFileService, ScanTaskPublisher scanTaskPublisher, DepartmentUploadStrategy departmentUploadStrategy, ScanTaskPublisher scanTaskPublisher1
     ) {
-        super(fileRepo, folderRepo);
+        super(fileRepo, folderRepo, scanTaskPublisher);
         this.fileRepo = fileRepo;
         this.folderRepo = folderRepo;
         this.fileNameResolverService = fileNameResolverService;
-        this.mimeTypeValidatorService = mimeTypeValidatorService;
         this.transliterationService = transliterationService;
         this.currentUserService = currentUserService;
         this.departmentAccessService = departmentAccessService;
         this.departmentFileMapper = departmentFileMapper;
         this.minioFileService = minioFileService;
+        this.departmentUploadStrategy = departmentUploadStrategy;
     }
 
     @Transactional
@@ -201,35 +201,8 @@ public class DepartmentBaseFileService extends BaseFileService<
     }
 
     @Override
-    protected DepartmentFileInfoDto applyUploadFile(UploadFileDto dto, DepartmentFolderEntity folder, StorageContext ctx) {
-        DepartmentContext dCtx = (DepartmentContext) ctx;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
-
-        MagicValidationResult res = mimeTypeValidatorService.validate(dto.fileData(), dto.name());
-
-        InputStream fullStream = new SequenceInputStream(
-                new ByteArrayInputStream(res.header()),
-                dto.fileData()
-        );
-
-        fileNameResolverService.ensureUniqueNameOrThrow(dto.name(), folder, dept);
-
-        DepartmentFileEntity file = new DepartmentFileEntity();
-        file.setName(dto.name());
-        file.setFolder(folder);
-        file.setFileType(res.mimeType());
-        file.setDepartment(dept);
-        file.setCreatedBy(dCtx.user().getShortFio());
-        file.setCreatedAt(Instant.now());
-        file.setDeleted(false);
-        file.setFileSize(dto.size());
-
-        String key = minioFileService.generateDepartmentFileKey(dept.getId());
-        file.setStorageKey(key);
-
-        minioFileService.uploadFile(fullStream, dto.size(), DEPARTMENT_BUCKET, key, res.mimeType());
-
-        return mapToDto(fileRepo.save(file));
+    protected UploadStrategy<DepartmentFileEntity, DepartmentFolderEntity, DepartmentFileRepository, DepartmentEntity> getUploadStrategy() {
+        return departmentUploadStrategy;
     }
 
     @Override
