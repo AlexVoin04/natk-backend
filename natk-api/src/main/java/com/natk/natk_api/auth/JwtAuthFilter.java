@@ -31,6 +31,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
+
+        // Пропускаем preflight запросы (CORS)
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return true;
+        }
+
+        // Пропускаем служебные
         String path = request.getServletPath();
         return path.startsWith("/actuator/")||
                 path.startsWith("/internal/");
