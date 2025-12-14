@@ -2,6 +2,7 @@
 
 .env
 
-.gradle
+.gradle/
 build/
-gradle/
+out/
+target/
