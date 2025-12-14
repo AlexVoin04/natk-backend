@@ -40,8 +40,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Make gradlew executable
+      - name: Make gradlew executable (for natk-pdf)
         run: chmod +x ./natk-pdf/gradlew
+
+      - name: Make gradlew executable (for root)
+        run: chmod +x ./gradlew
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
