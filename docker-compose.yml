@@ -20,7 +20,7 @@ services:
       retries: 5
 
   natk-auth:
-    image: 'natk-auth:0.0.2'
+    image: '${REGISTRY:-}natk-auth:0.1.0'
     ports:
       - "8001:8080"
     environment:
@@ -37,7 +37,7 @@ services:
       - natk-net
 
   natk-api:
-    image: 'natk-api:0.3.3'
+    image: '${REGISTRY:-}natk-api:0.4.0'
     ports:
       - "8000:8080"
     environment:
@@ -70,7 +70,7 @@ services:
       - natk-net
 
   natk-antivirus:
-    image: 'natk-antivirus:0.0.3'
+    image: '${REGISTRY:-}natk-antivirus:0.1.0'
     environment:
       - RABBITMQ_HOST=${RABBITMQ_HOST}
       - RABBITMQ_PORT=${RABBITMQ_PORT}
@@ -93,7 +93,7 @@ services:
       - natk-net
 
   natk-pdf:
-    image: 'natk-pdf:0.0.1'
+    image: '${REGISTRY:-}natk-pdf:0.1.0'
     ports:
       - "8003:8080"
     environment:
@@ -103,7 +103,7 @@ services:
       - natk-net
 
   natk-ai:
-    image: 'natk-ai:0.0.3'
+    image: '${REGISTRY:-}natk-ai:0.1.0'
     ports:
       - "8002:8080"
     environment:

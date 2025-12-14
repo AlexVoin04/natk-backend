@@ -5,12 +5,16 @@ plugins {
 }
 
 group = 'com.natk'
-version = '0.0.1'
+version = '0.1.0'
 
 java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(23)
 	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	options.release = 21
 }
 
 repositories {
