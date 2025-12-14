@@ -5,6 +5,11 @@ plugins {
 group = 'com.natk'
 version = '0.0.1'
 
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 21
+}
+
 repositories {
     mavenCentral()
 }

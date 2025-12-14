@@ -73,7 +73,7 @@ public class FileStatusUpdater {
                 log.warn("Attempt {} failed: {}", context.getRetryCount() + 1, e.getMessage());
                 throw e;
             }
-        }, _ -> {
+        }, retryContext  -> {
             // Recovery callback — выполняется после всех попыток
             log.error("All retry attempts failed. Giving up.");
             return null;
