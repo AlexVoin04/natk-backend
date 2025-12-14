@@ -4,19 +4,32 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.natk.natk_api.llms.FileConversionException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.boot.context.properties.bind.Bindable;
+import org.springframework.boot.context.properties.bind.Binder;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.stereotype.Component;
+import org.springframework.util.unit.DataSize;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
 @ControllerAdvice
+@Component
 public class GlobalExceptionHandler {
+    private final Environment environment;
+
+    public GlobalExceptionHandler(Environment environment) {
+        this.environment = environment;
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex,
                                                                HttpServletRequest request) {
@@ -57,6 +70,25 @@ public class GlobalExceptionHandler {
         response.put("error", ex.getMessage());
         response.put("suggestedName", ex.getSuggestedName());
         return ResponseEntity.badRequest().body(response);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleMaxUploadSize(MaxUploadSizeExceededException ex,
+                                                             HttpServletRequest request) {
+        long maxBytes = Binder.get(environment)
+                .bind("spring.servlet.multipart.max-file-size", Bindable.of(DataSize.class))
+                .map(DataSize::toBytes)
+                .orElse(50L * 1024 * 1024); // fallback 50 MB
+
+        String message = String.format("File size exceeds limit: %d MB", maxBytes / (1024 * 1024));
+        ErrorResponse response = ErrorResponse.builder()
+                .timestamp(OffsetDateTime.now().toString())
+                .status(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE) // 413
+                .error("Payload Too Large")
+                .message(message)
+                .path(request.getRequestURI())
+                .build();
+        return ResponseEntity.status(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE).body(response);
     }
 
     private int resolveStatus(IllegalArgumentException ex) {
