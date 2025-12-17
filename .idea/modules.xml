@@ -2,8 +2,10 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/natk-antivirus/natk-backend.natk-antivirus.main.iml" filepath="$PROJECT_DIR$/.idea/modules/natk-antivirus/natk-backend.natk-antivirus.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/natk-api/natk-backend.natk-api.main.iml" filepath="$PROJECT_DIR$/.idea/modules/natk-api/natk-backend.natk-api.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/natk-auth/natk-backend.natk-auth.main.iml" filepath="$PROJECT_DIR$/.idea/modules/natk-auth/natk-backend.natk-auth.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/natk-pdf/natk-backend.natk-pdf.main.iml" filepath="$PROJECT_DIR$/.idea/modules/natk-pdf/natk-backend.natk-pdf.main.iml" />
     </modules>
   </component>
 </project>
