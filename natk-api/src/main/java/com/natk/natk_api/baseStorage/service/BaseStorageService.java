@@ -5,6 +5,8 @@ import com.natk.natk_api.userStorage.dto.FolderContentResponseDto;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -32,8 +34,15 @@ public abstract class BaseStorageService<
         List<TItemDto> combined = sortByFolderThenName(folderItems, fileItems);
 
         String path = resolvePathForResponse(folder, ctx);
+        var breadcrumb = generateBreadcrumbPath(folder, ctx);
 
-        return new FolderContentResponseDto<>(folder == null ? null : extractFolderId(folder), path, combined);
+        return new FolderContentResponseDto<>(
+                folder == null ? null : extractFolderId(folder),
+                path,
+                breadcrumb.pathIds(),
+                breadcrumb.names(),
+                combined
+        );
     }
 
     @Transactional(readOnly = true)
@@ -80,6 +89,8 @@ public abstract class BaseStorageService<
     protected abstract boolean isFile(TItemDto dto);
     protected abstract String extractName(TItemDto dto);
 
+    protected abstract TFolder getParentFolder(TFolder folder);
+
     private List<TItemDto> sortByFolderThenName(List<TItemDto> folders, List<TItemDto> files) {
         Comparator<TItemDto> byTypeThenName = Comparator
                 .comparing(this::isFile)
@@ -88,5 +99,37 @@ public abstract class BaseStorageService<
         return Stream.concat(folders.stream(), files.stream())
                 .sorted(byTypeThenName)
                 .toList();
+    }
+
+    private record BreadcrumbPath(String[] pathIds, String[] names) {}
+
+    private BreadcrumbPath generateBreadcrumbPath(TFolder folder, StorageContext ctx) {
+        List<String> pathIdsList = new ArrayList<>();
+        List<String> pathNamesList = new ArrayList<>();
+
+        pathIdsList.add(null);
+        pathNamesList.add("Все файлы");
+
+        // собираем путь ОТ КОРНЯ К ТЕКУЩЕЙ ПАПКЕ (реверсный обход)
+        List<String> tempIds = new ArrayList<>();
+        List<String> tempNames = new ArrayList<>();
+
+        TFolder current = folder;
+        while (current != null) {
+            tempIds.add(extractFolderId(current).toString());
+            tempNames.add(extractName(mapFolderToItem(current, ctx)));
+            current = getParentFolder(current);
+        }
+
+        Collections.reverse(tempIds);
+        Collections.reverse(tempNames);
+
+        pathIdsList.addAll(tempIds);
+        pathNamesList.addAll(tempNames);
+
+        return new BreadcrumbPath(
+                pathIdsList.toArray(String[]::new),
+                pathNamesList.toArray(String[]::new)
+        );
     }
 }

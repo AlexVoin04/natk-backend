@@ -187,4 +187,9 @@ public class DepartmentBaseStorageService extends BaseStorageService<
     protected String extractName(DepartmentStorageItemDto dto) {
         return dto.name();
     }
+
+    @Override
+    protected DepartmentFolderEntity getParentFolder(DepartmentFolderEntity folder) {
+        return folder != null ? folder.getParentFolder() : null;
+    }
 }
