@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'com.example'
-version = '0.1.1'
+version = '0.1.2'
 
 java {
 	toolchain {
@@ -16,6 +16,10 @@ java {
 
 tasks.withType(JavaCompile).configureEach {
 	options.release = 21
+}
+
+configurations {
+	mockitoAgent
 }
 
 repositories {
@@ -39,6 +43,8 @@ dependencies {
 	// PostgreSQL
 	runtimeOnly 'org.postgresql:postgresql'
 
+	implementation "org.apache.commons:commons-lang3:3.18.0"
+
 	// Swagger
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
 
@@ -51,13 +57,14 @@ dependencies {
 
 	// Test
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-
-
+	mockitoAgent("org.mockito:mockito-core") { transitive = false }
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
+	// Важно: +=, а не перезапись, чтобы не сломать другие агенты (Jacoco и т.п.)
+	jvmArgs += ["-javaagent:${configurations.mockitoAgent.asPath}"]
 }
 
 jib {

@@ -9,6 +9,7 @@ import io.minio.Result;
 import io.minio.messages.Item;
 import io.minio.StatObjectArgs;
 import io.minio.StatObjectResponse;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,7 @@ import java.nio.file.Path;
 /**
  * Тест только конфигурации MinIO, без запуска Spring Boot.
  */
+@Disabled("Ручной smoke-тест MinIO. Запускать локально при необходимости.")
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = MinioTest.MinioTestConfig.class)
 public class MinioTest {

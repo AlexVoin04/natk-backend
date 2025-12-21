@@ -29,7 +29,7 @@ services:
       retries: 5
 
   natk-auth:
-    image: '${REGISTRY:-}natk-auth:0.1.1'
+    image: '${REGISTRY:-}natk-auth:0.1.2'
     ports:
       - "8001:8080"
     environment:
@@ -46,7 +46,7 @@ services:
       - natk-net
 
   natk-api:
-    image: '${REGISTRY:-}natk-api:0.4.1'
+    image: '${REGISTRY:-}natk-api:0.4.2'
     ports:
       - "8000:8080"
     environment:

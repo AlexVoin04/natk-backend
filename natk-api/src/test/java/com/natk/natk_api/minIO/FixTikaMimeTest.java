@@ -1,7 +1,14 @@
 package com.natk.natk_api.minIO;
 
-import io.minio.*;
+import io.minio.GetObjectArgs;
+import io.minio.ListObjectsArgs;
+import io.minio.MinioClient;
+import io.minio.PutObjectArgs;
+import io.minio.Result;
+import io.minio.StatObjectArgs;
+import io.minio.StatObjectResponse;
 import io.minio.messages.Item;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +24,7 @@ import java.io.ByteArrayInputStream;
 /**
  * Исправление неверного Content-Type application/x-tika-ooxml с Content-Type octet-stream → правильные MIME для Office
  */
+@Disabled("Использовался при переходе на минио.")
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = FixTikaMimeTest.MinioConfig.class)
 public class FixTikaMimeTest {

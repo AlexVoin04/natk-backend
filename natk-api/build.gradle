@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'com.natk'
-version = '0.4.1'
+version = '0.4.2'
 
 java {
 	toolchain {
@@ -16,6 +16,10 @@ java {
 
 tasks.withType(JavaCompile).configureEach {
 	options.release = 21
+}
+
+configurations {
+	mockitoAgent
 }
 
 repositories {
@@ -49,7 +53,7 @@ dependencies {
 	implementation 'io.minio:minio:8.6.0'
 	implementation('org.apache.commons:commons-lang3:3.20.0')
 
-	implementation 'org.apache.tika:tika-core:3.2.1'
+	implementation 'org.apache.tika:tika-core:3.2.2'
 
 	// JWT
 	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
@@ -62,12 +66,18 @@ dependencies {
 
 	implementation project(":natk-common")
 
+	testImplementation "org.springframework.batch:spring-batch-infrastructure"
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	mockitoAgent("org.mockito:mockito-core") { transitive = false }
+	testImplementation "org.testcontainers:junit-jupiter"
+	testImplementation "org.testcontainers:testcontainers"
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
+	// Важно: +=, а не перезапись, чтобы не сломать другие агенты (Jacoco и т.п.)
+	jvmArgs += ["-javaagent:${configurations.mockitoAgent.asPath}"]
 }
 
 jib {
