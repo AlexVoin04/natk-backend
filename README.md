@@ -97,12 +97,12 @@ Build images manually:
 
 🔐 Build natk-auth image
 ```shell
-./gradlew :natk-auth:jibDockerBuild --image=natk-auth:0.1.0
+./gradlew :natk-auth:jibDockerBuild --image=natk-auth:0.1.2
 ```
 
 🌐 Build natk-api image
 ```shell
-./gradlew :natk-api:jibDockerBuild  --image=natk-api:0.4.0
+./gradlew :natk-api:jibDockerBuild  --image=natk-api:0.4.2
 ```
 
 📄 Build natk-pdf image
@@ -112,7 +112,7 @@ docker build -t natk-pdf:0.1.0 ./natk-pdf
 
 🤖 Build natk-ai image
 ```shell
-docker build -t natk-ai:0.0.3 ./natk-ai
+docker build -t natk-ai:0.1.0 ./natk-ai
 ```
 
 🛡 Build natk-antivirus
