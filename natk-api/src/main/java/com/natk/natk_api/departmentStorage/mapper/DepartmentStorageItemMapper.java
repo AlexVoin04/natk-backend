@@ -18,7 +18,9 @@ public class DepartmentStorageItemMapper extends AbstractStorageItemMapper<Depar
                 "folder",
                 folder.getCreatedAt(),
                 folder.getUpdatedAt(),
-                folder.getCreatedBy()
+                folder.getCreatedBy(),
+                null,
+                null
         );
     }
 
@@ -29,7 +31,9 @@ public class DepartmentStorageItemMapper extends AbstractStorageItemMapper<Depar
                 file.getFileType(),
                 file.getCreatedAt(),
                 null,
-                file.getCreatedBy()
+                file.getCreatedBy(),
+                file.getStatus(),
+                file.getFileSize()
         );
     }
 
