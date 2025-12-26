@@ -27,4 +27,13 @@ public interface DepartmentFileRepository extends JpaRepository<DepartmentFileEn
     List<DepartmentFileEntity> findByDepartmentAndIsDeletedTrueOrderByDeletedAtDesc(DepartmentEntity department);
 
     List<DepartmentFileEntity> findByIsDeletedTrueAndDeletedAtBefore(Instant cutoff);
+
+    List<DepartmentFileEntity> findByDepartmentAndFolderAndIsDeletedTrue(
+            DepartmentEntity department,
+            DepartmentFolderEntity folder
+    );
+
+    List<DepartmentFileEntity> findByDepartmentAndFolderIsNullAndIsDeletedTrue(
+            DepartmentEntity department
+    );
 }

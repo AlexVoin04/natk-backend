@@ -1,9 +1,11 @@
 package com.natk.natk_api.userStorage;
 
+import com.natk.natk_api.baseStorage.PurgeStats;
 import com.natk.natk_api.baseStorage.dto.MoveFileDto;
 import com.natk.natk_api.baseStorage.dto.MoveFolderDto;
 import com.natk.natk_api.baseStorage.dto.RenameFileDto;
 import com.natk.natk_api.baseStorage.dto.RenameFolderDto;
+import com.natk.natk_api.departmentStorage.dto.PurgeItemDto;
 import com.natk.natk_api.llms.dto.QuestionRequestDto;
 import com.natk.natk_api.llms.dto.QuestionResponseDto;
 import com.natk.natk_api.llms.service.QuestionGenerationService;
@@ -19,6 +21,7 @@ import com.natk.natk_api.userStorage.dto.UserStorageItemDto;
 import com.natk.natk_api.userStorage.service.UserBaseFileService;
 import com.natk.natk_api.userStorage.service.UserBaseFolderService;
 import com.natk.natk_api.userStorage.service.UserBaseStorageService;
+import com.natk.natk_api.userStorage.service.UserPurgeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -49,6 +52,7 @@ public class UserStorageController {
     private final UserBaseFolderService userFolderService;
     private final UserBaseStorageService userStorageService;
     private final QuestionGenerationService questionGenerationService;
+    private final UserPurgeService userPurgeService;
 
     @PostMapping("/folders")
     public FolderDto createFolder(@RequestBody CreateFolderDto dto) {
@@ -166,4 +170,23 @@ public class UserStorageController {
     public List<UserDeletedItemDto> getBinItems() {
         return userStorageService.getDeletedItems();
     }
+
+    @DeleteMapping("/bin/files/{id}/purge")
+    public ResponseEntity<?> purgeDeletedFile(@PathVariable UUID id) {
+        userPurgeService.purgeFile(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/bin/folders/{id}/purge")
+    public ResponseEntity<?> purgeDeletedFolder(@PathVariable UUID id) {
+        userPurgeService.purgeFolder(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/bin/purge")
+    public PurgeStats purgeMultiple(@RequestBody List<PurgeItemDto> items) {
+        return userPurgeService.purgeMultiple(items);
+    }
+
+    //TODO: добавить просто очистку без items
 }

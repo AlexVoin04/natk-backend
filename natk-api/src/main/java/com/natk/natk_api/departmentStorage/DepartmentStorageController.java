@@ -8,6 +8,7 @@ import com.natk.natk_api.departmentStorage.dto.DepartmentDeletedItemDto;
 import com.natk.natk_api.departmentStorage.dto.DepartmentFileInfoDto;
 import com.natk.natk_api.departmentStorage.dto.DepartmentFolderDto;
 import com.natk.natk_api.departmentStorage.dto.DepartmentStorageItemDto;
+import com.natk.natk_api.departmentStorage.dto.PurgeItemDto;
 import com.natk.natk_api.departmentStorage.service.DepartmentBaseFileService;
 import com.natk.natk_api.departmentStorage.service.DepartmentBaseFolderService;
 import com.natk.natk_api.baseStorage.dto.CreateFolderDto;
@@ -15,6 +16,7 @@ import com.natk.natk_api.baseStorage.dto.FileDownloadDto;
 import com.natk.natk_api.baseStorage.dto.FolderTreeDto;
 import com.natk.natk_api.baseStorage.dto.UploadFileDto;
 import com.natk.natk_api.departmentStorage.service.DepartmentBaseStorageService;
+import com.natk.natk_api.departmentStorage.service.DepartmentPurgeService;
 import com.natk.natk_api.userStorage.dto.FolderContentResponseDto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +24,16 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
@@ -37,6 +48,7 @@ public class DepartmentStorageController {
     private final DepartmentBaseFolderService folderService;
     private final DepartmentBaseFileService departmentFileService;
     private final DepartmentBaseStorageService departmentStorageService;
+    private final DepartmentPurgeService departmentPurgeService;
 
     @PostMapping("/folders")
     @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'ACCESS')")
@@ -203,4 +215,35 @@ public class DepartmentStorageController {
     ) {
         return departmentStorageService.getDeletedItems(departmentId);
     }
+
+//    TODO: закончить реализацию
+//    @DeleteMapping("/bin/files/{id}/purge")
+//    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'MANAGE')")
+//    public ResponseEntity<?> purgeDeletedFile(
+//            @PathVariable UUID departmentId,
+//            @PathVariable UUID id
+//    ) {
+//        departmentPurgeService.purgeFile(id, departmentId);
+//        return ResponseEntity.ok().build();
+//    }
+//
+//    @DeleteMapping("/bin/folders/{id}/purge")
+//    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'MANAGE')")
+//    public ResponseEntity<?> purgeDeletedFolder(
+//            @PathVariable UUID departmentId,
+//            @PathVariable UUID id
+//    ) {
+//        departmentPurgeService.purgeFolder(id, departmentId);
+//        return ResponseEntity.ok().build();
+//    }
+//
+//    @DeleteMapping("/bin/purge")
+//    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'MANAGE')")
+//    public ResponseEntity<?> purgeMultiple(
+//            @PathVariable UUID departmentId,
+//            @RequestBody List<PurgeItemDto> items
+//    ) {
+//        departmentPurgeService.purgeMultiple(items, departmentId);
+//        return ResponseEntity.ok().build();
+//    }
 }

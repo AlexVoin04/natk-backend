@@ -165,6 +165,30 @@ CREATE TABLE chat_message_attachments (
     FOREIGN KEY (message_id) REFERENCES chat_messages(id) ON DELETE CASCADE
 );
 
+-- === Audit Enums ===
+CREATE TYPE audit_file_type AS ENUM ('FILE', 'FOLDER', 'BATCH');
+CREATE TYPE audit_file_storage AS ENUM ('USER', 'DEPARTMENT');
+
+-- === Storage Purge Audit ===
+CREATE TABLE storage_purge_audit (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL,
+    department_id UUID, -- nullable
+    target_id UUID,     -- file, folder или batch id
+    target_type audit_file_type NOT NULL,
+    storage audit_file_storage NOT NULL,
+    purged_at TIMESTAMP NOT NULL DEFAULT now(),
+    files_deleted INT NOT NULL DEFAULT 0,
+    folders_deleted INT NOT NULL DEFAULT 0
+);
+
+-- Индексы для аудитов удаления
+CREATE INDEX idx_storage_purge_audit_user_id ON storage_purge_audit(user_id);
+CREATE INDEX idx_storage_purge_audit_department_id ON storage_purge_audit(department_id);
+CREATE INDEX idx_storage_purge_audit_target_id ON storage_purge_audit(target_id);
+CREATE INDEX idx_storage_purge_audit_target_type ON storage_purge_audit(target_type);
+CREATE INDEX idx_storage_purge_audit_storage ON storage_purge_audit(storage);
+
 -- Индексы для чатов
 CREATE INDEX idx_chat_members_user_id ON chat_members(user_id);
 CREATE INDEX idx_chat_messages_chat_id ON chat_messages(chat_id);
