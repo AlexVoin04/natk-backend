@@ -74,12 +74,7 @@ public class UserPurgeService extends BasePurgeService<UserFolderEntity, UserFil
                 new TransactionSynchronization() {
                     @Override
                     public void afterCommit() {
-                        audit.logUserBatchPurge(
-                                ctx.user().getId(),
-                                stats.files(),
-                                stats.folders(),
-                                items.size()
-                        );
+                        audit.logUserPurge(ctx.user().getId(), null, PurgeAuditType.BATCH, stats.files(), stats.folders());
                     }
                 }
         );
@@ -139,4 +134,10 @@ public class UserPurgeService extends BasePurgeService<UserFolderEntity, UserFil
         UserEntity user = ((UserContext) ctx).user();
         return folderRepo.findByUserAndParentFolderIsNullAndIsDeletedTrue(user);
     }
+
+    @Override
+    protected void folderAccessForFile(UserFileEntity userFileEntity, StorageContext ctx) {}
+
+    @Override
+    protected void folderAccessForFolder(UserFolderEntity folder, StorageContext ctx) {}
 }

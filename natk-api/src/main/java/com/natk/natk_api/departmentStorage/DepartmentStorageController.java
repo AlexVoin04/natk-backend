@@ -216,34 +216,33 @@ public class DepartmentStorageController {
         return departmentStorageService.getDeletedItems(departmentId);
     }
 
-//    TODO: закончить реализацию
-//    @DeleteMapping("/bin/files/{id}/purge")
-//    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'MANAGE')")
-//    public ResponseEntity<?> purgeDeletedFile(
-//            @PathVariable UUID departmentId,
-//            @PathVariable UUID id
-//    ) {
-//        departmentPurgeService.purgeFile(id, departmentId);
-//        return ResponseEntity.ok().build();
-//    }
-//
-//    @DeleteMapping("/bin/folders/{id}/purge")
-//    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'MANAGE')")
-//    public ResponseEntity<?> purgeDeletedFolder(
-//            @PathVariable UUID departmentId,
-//            @PathVariable UUID id
-//    ) {
-//        departmentPurgeService.purgeFolder(id, departmentId);
-//        return ResponseEntity.ok().build();
-//    }
-//
-//    @DeleteMapping("/bin/purge")
-//    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'MANAGE')")
-//    public ResponseEntity<?> purgeMultiple(
-//            @PathVariable UUID departmentId,
-//            @RequestBody List<PurgeItemDto> items
-//    ) {
-//        departmentPurgeService.purgeMultiple(items, departmentId);
-//        return ResponseEntity.ok().build();
-//    }
+    @DeleteMapping("/bin/files/{id}/purge")
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'MANAGE')")
+    public ResponseEntity<?> purgeDeletedFile(
+            @PathVariable UUID departmentId,
+            @PathVariable UUID id
+    ) {
+        departmentPurgeService.purgeFile(id, departmentId);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/bin/folders/{id}/purge")
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'MANAGE')")
+    public ResponseEntity<?> purgeDeletedFolder(
+            @PathVariable UUID departmentId,
+            @PathVariable UUID id
+    ) {
+        departmentPurgeService.purgeFolder(id, departmentId);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/bin/purge")
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'MANAGE')")
+    public ResponseEntity<?> purgeMultiple(
+            @PathVariable UUID departmentId,
+            @RequestBody List<PurgeItemDto> items
+    ) {
+        departmentPurgeService.purgeMultiple(items, departmentId);
+        return ResponseEntity.ok().build();
+    }
 }

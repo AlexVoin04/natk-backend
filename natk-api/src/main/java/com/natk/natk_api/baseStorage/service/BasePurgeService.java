@@ -57,10 +57,15 @@ public abstract class BasePurgeService<TFolder, TFile> {
 
     protected abstract List<TFolder> findDeletedRootFolders(StorageContext ctx);
 
+    protected abstract void folderAccessForFile(TFile file, StorageContext ctx);
+    protected abstract void folderAccessForFolder(TFolder folder, StorageContext ctx);
+
     @Transactional
     public PurgeStats purgeFile(UUID id, StorageContext ctx) {
         TFile file = loadDeletedFileById(id, ctx)
                 .orElseThrow(() -> new IllegalArgumentException("File not found in bin"));
+
+        folderAccessForFile(file, ctx);
 
         String key = extractStorageKey(file, ctx);
         deleteFileEntities(List.of(file), ctx);
@@ -73,6 +78,8 @@ public abstract class BasePurgeService<TFolder, TFile> {
     public PurgeStats purgeFolder(UUID id, StorageContext ctx) {
         TFolder root = loadDeletedFolderById(id, ctx)
                 .orElseThrow(() -> new IllegalArgumentException("Folder not found in bin"));
+
+        folderAccessForFolder(root, ctx);
 
         // Собираем все файлы в subtree для удаления из MinIO
         List<TFile> filesToDelete = new ArrayList<>();

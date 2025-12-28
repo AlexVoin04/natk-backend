@@ -9,6 +9,7 @@ import com.natk.natk_api.baseStorage.context.StorageContext;
 import com.natk.natk_api.baseStorage.service.BasePurgeService;
 import com.natk.natk_api.department.model.DepartmentEntity;
 import com.natk.natk_api.department.permission.DepartmentAccessService;
+import com.natk.natk_api.departmentStorage.dto.PurgeItemDto;
 import com.natk.natk_api.departmentStorage.model.DepartmentFileEntity;
 import com.natk.natk_api.departmentStorage.model.DepartmentFolderEntity;
 import com.natk.natk_api.departmentStorage.repository.DepartmentFileRepository;
@@ -17,7 +18,11 @@ import com.natk.natk_api.exception.FileOrFolderNotFoundOrNoAccessException;
 import com.natk.natk_api.minio.MinioFileService;
 import com.natk.natk_api.users.model.UserEntity;
 import com.natk.natk_api.users.service.CurrentUserService;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.Optional;
@@ -48,6 +53,61 @@ public class DepartmentPurgeService extends BasePurgeService<DepartmentFolderEnt
             throw new FileOrFolderNotFoundOrNoAccessException();
         }
         return new DepartmentContext(user, dept);
+    }
+
+    @Transactional
+    public void purgeFolder(UUID id, UUID departmentId) {
+        StorageContext ctx = getContext(departmentId);
+        DepartmentContext dCtx = (DepartmentContext) ctx;
+        PurgeStats stats = super.purgeFolder(id, ctx);
+
+        audit.logDepartmentPurge(
+                dCtx.user().getId(),
+                departmentId,
+                id,
+                PurgeAuditType.FOLDER,
+                stats.files(),
+                stats.folders()
+        );
+    }
+
+    @Transactional
+    public void purgeFile(UUID id, UUID departmentId) {
+        StorageContext ctx = getContext(departmentId);
+        DepartmentContext dCtx = (DepartmentContext) ctx;
+        PurgeStats stats = super.purgeFile(id, ctx);
+
+        audit.logDepartmentPurge(
+                dCtx.user().getId(),
+                departmentId,
+                id,
+                PurgeAuditType.FILE,
+                stats.files(),
+                0
+        );
+    }
+
+    @Transactional
+    public PurgeStats purgeMultiple(List<PurgeItemDto> items, UUID departmentId) {
+        StorageContext ctx = getContext(departmentId);
+        DepartmentContext dCtx = (DepartmentContext) ctx;
+        PurgeStats stats = super.purgeMultiple(items, ctx);
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        audit.logDepartmentPurge(
+                                dCtx.user().getId(),
+                                departmentId,
+                                null,
+                                PurgeAuditType.BATCH,
+                                stats.files(),
+                                stats.folders()
+                        );
+                    }
+                }
+        );
+        return stats;
     }
 
     @Override
@@ -100,36 +160,24 @@ public class DepartmentPurgeService extends BasePurgeService<DepartmentFolderEnt
 
     @Override
     protected List<DepartmentFolderEntity> findDeletedRootFolders(StorageContext ctx) {
-        return List.of();
+        DepartmentContext dCtx = (DepartmentContext) ctx;
+        DepartmentEntity dept = dCtx.department();
+        return folderRepo.findByDepartmentAndParentFolderIsNullAndIsDeletedTrue(dept);
     }
 
-    public void purgeFolder(UUID id, UUID departmentId) {
-        StorageContext ctx = getContext(departmentId);
+    @Override
+    protected void folderAccessForFile(DepartmentFileEntity file, StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
-        PurgeStats stats = super.purgeFolder(id, ctx);
-
-        audit.logDepartmentPurge(
-                dCtx.user().getId(),
-                departmentId,
-                id,
-                PurgeAuditType.FOLDER,
-                stats.files(),
-                stats.folders()
-        );
+        if(!departmentAccessService.hasFolderAccess(dCtx.user(), file.getFolder())){
+            throw new AccessDeniedException("No rights to delete");
+        }
     }
 
-    public void purgeFile(UUID id, UUID departmentId) {
-        StorageContext ctx = getContext(departmentId);
+    @Override
+    protected void folderAccessForFolder(DepartmentFolderEntity folder, StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
-        PurgeStats stats = super.purgeFile(id, ctx);
-
-        audit.logDepartmentPurge(
-                dCtx.user().getId(),
-                departmentId,
-                id,
-                PurgeAuditType.FILE,
-                stats.files(),
-                0
-        );
+        if(!departmentAccessService.hasFolderAccess(dCtx.user(), folder.getParentFolder())){
+            throw new AccessDeniedException("No rights to delete");
+        }
     }
 }

@@ -57,16 +57,4 @@ public class StoragePurgeAuditService {
                 .foldersDeleted(folders)
                 .build());
     }
-
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void logUserBatchPurge(UUID userId, int files, int folders, int items) {
-        repo.save(StoragePurgeAuditEntity.builder()
-                .userId(userId)
-                .targetType(PurgeAuditType.BATCH)
-                .storage(StorageScope.USER)
-                .purgedAt(Instant.now())
-                .filesDeleted(files)
-                .foldersDeleted(folders)
-                .build());
-    }
 }
