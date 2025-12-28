@@ -1,6 +1,7 @@
 package com.natk.natk_api.purgeStorage;
 
 
+import com.natk.natk_api.baseStorage.enums.BucketName;
 import com.natk.natk_api.departmentStorage.model.DepartmentFileEntity;
 import com.natk.natk_api.departmentStorage.model.DepartmentFolderEntity;
 import com.natk.natk_api.departmentStorage.repository.DepartmentFileRepository;
@@ -30,9 +31,6 @@ public class StorageCleanupService {
     private final DepartmentFolderRepository deptFolderRepo;
     private final MinioFileService minioFileService;
 
-    private static final String USER_BUCKET = "user-files";
-    private static final String DEPARTMENT_BUCKET = "department-files";
-
     private static final int BATCH_SIZE = 100; // пакетная обработка MinIO
 
 
@@ -59,7 +57,7 @@ public class StorageCleanupService {
                     .filter(k -> k != null && !k.isEmpty())
                     .toList();
             try {
-                minioFileService.deleteFiles(USER_BUCKET, keys);
+                minioFileService.deleteFiles(BucketName.USER_FILES.value(), keys);
             } catch (Exception e) {
                 log.error("Ошибка при удалении файлов User: {}", e.getMessage(), e);
             }
@@ -76,7 +74,7 @@ public class StorageCleanupService {
                     .filter(k -> k != null && !k.isEmpty())
                     .toList();
             try {
-                minioFileService.deleteFiles(DEPARTMENT_BUCKET, keys);
+                minioFileService.deleteFiles(BucketName.DEPARTMENTS_FILES.value(), keys);
             } catch (Exception e) {
                 log.error("Ошибка при удалении файлов Department: {}", e.getMessage(), e);
             }

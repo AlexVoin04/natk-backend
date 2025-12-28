@@ -1,6 +1,7 @@
 package com.natk.natk_api.clamav.department;
 
-import com.natk.natk_api.baseStorage.FileStatus;
+import com.natk.natk_api.baseStorage.enums.BucketName;
+import com.natk.natk_api.baseStorage.enums.FileStatus;
 import com.natk.natk_api.departmentStorage.model.DepartmentFileEntity;
 import com.natk.natk_api.departmentStorage.repository.DepartmentFileRepository;
 import com.natk.natk_api.minio.MinioFileService;
@@ -25,8 +26,8 @@ public class DepartmentFileScanService {
             DepartmentFileEntity file = getFileOrThrow(id);
 
             String newKey = minio.generateDepartmentFileKey(file.getDepartment().getId());
-            minio.copyObjectServerSide("incoming", file.getStorageKey(), "department-files", newKey);
-            minio.deleteFile("incoming", file.getStorageKey());
+            minio.copyObjectServerSide(BucketName.INCOMING.value(), file.getStorageKey(), BucketName.DEPARTMENTS_FILES.value(), newKey);
+            minio.deleteFile(BucketName.INCOMING.value(), file.getStorageKey());
 
             file.setStorageKey(newKey);
             file.setStatus(FileStatus.READY);
@@ -42,7 +43,7 @@ public class DepartmentFileScanService {
         try {
             DepartmentFileEntity file = getFileOrThrow(id);
             file.setStatus(FileStatus.INFECTED);
-            minio.deleteFile("incoming", file.getStorageKey());
+            minio.deleteFile(BucketName.INCOMING.value(), file.getStorageKey());
             fileRepo.save(file);
             log.info("VIRUS: {}", virusName);
         } catch (Exception e) {

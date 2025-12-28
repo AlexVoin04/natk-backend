@@ -2,6 +2,7 @@ package com.natk.natk_api.departmentStorage.service;
 
 import com.natk.natk_api.audit.enums.PurgeAuditType;
 import com.natk.natk_api.audit.service.StoragePurgeAuditService;
+import com.natk.natk_api.baseStorage.enums.BucketName;
 import com.natk.natk_api.baseStorage.PurgeStats;
 import com.natk.natk_api.baseStorage.context.DepartmentContext;
 import com.natk.natk_api.baseStorage.context.StorageContext;
@@ -30,8 +31,6 @@ public class DepartmentPurgeService extends BasePurgeService<DepartmentFolderEnt
     private final StoragePurgeAuditService audit;
     private final CurrentUserService currentUserService;
     private final DepartmentAccessService departmentAccessService;
-
-    private static final String BUCKET = "department-files";
 
     public DepartmentPurgeService(MinioFileService minio, DepartmentFileRepository fileRepo, DepartmentFolderRepository folderRepo, DepartmentAccessService departmentAccessService, StoragePurgeAuditService audit, CurrentUserService currentUserService) {
         super(minio);
@@ -95,7 +94,7 @@ public class DepartmentPurgeService extends BasePurgeService<DepartmentFolderEnt
 
     @Override
     protected String bucketName() {
-        return BUCKET;
+        return BucketName.DEPARTMENTS_FILES.value();
     }
 
     @Override

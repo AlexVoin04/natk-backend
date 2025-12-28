@@ -1,6 +1,6 @@
 package com.natk.natk_api.userStorage.dto;
 
-import com.natk.natk_api.baseStorage.FileStatus;
+import com.natk.natk_api.baseStorage.enums.FileStatus;
 import com.natk.natk_api.baseStorage.intarfece.BaseStorageItemDto;
 
 import java.time.Instant;

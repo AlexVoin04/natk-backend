@@ -1,5 +1,6 @@
 package com.natk.natk_api.llms.service;
 
+import com.natk.natk_api.baseStorage.enums.BucketName;
 import com.natk.natk_api.llms.dto.FailedFileInfo;
 import com.natk.natk_api.llms.FileConversionException;
 import com.natk.natk_api.llms.QuestionType;
@@ -99,7 +100,7 @@ public class QuestionGenerationService {
                              MultipartBodyBuilder bodyBuilder,
                              List<FailedFileInfo> failedFiles) {
 
-        byte[] fileData = minioFileService.downloadFileAsBytes("user-files", file.getStorageKey());
+        byte[] fileData = minioFileService.downloadFileAsBytes(BucketName.USER_FILES.value(), file.getStorageKey());
         String mimeType = mimeTypeValidatorService.detectMimeType(fileData, file.getName());
 
         if (mimeType.equals("application/pdf")) {

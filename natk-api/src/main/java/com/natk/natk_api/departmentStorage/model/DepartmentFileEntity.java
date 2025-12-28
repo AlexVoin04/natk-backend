@@ -1,6 +1,6 @@
 package com.natk.natk_api.departmentStorage.model;
 
-import com.natk.natk_api.baseStorage.FileStatus;
+import com.natk.natk_api.baseStorage.enums.FileStatus;
 import com.natk.natk_api.department.model.DepartmentEntity;
 import jakarta.persistence.*;
 import lombok.Getter;

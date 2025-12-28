@@ -1,5 +1,6 @@
 package com.natk.natk_api.minIO;
 
+import com.natk.natk_api.baseStorage.enums.BucketName;
 import io.minio.GetObjectArgs;
 import io.minio.ListObjectsArgs;
 import io.minio.MinioClient;
@@ -53,7 +54,7 @@ public class FixTikaMimeTest {
     @Autowired
     private MinioClient minioClient;
 
-    private static final String[] BUCKETS = {"user-files", "department-files"};
+    private static final String[] BUCKETS = {BucketName.USER_FILES.value(), BucketName.DEPARTMENTS_FILES.value()};
     private static final String NEW_CONTENT_TYPE =
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 

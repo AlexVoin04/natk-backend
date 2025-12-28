@@ -1,6 +1,7 @@
 package com.natk.natk_api.departmentStorage.service;
 
 
+import com.natk.natk_api.baseStorage.enums.BucketName;
 import com.natk.natk_api.baseStorage.context.DepartmentContext;
 import com.natk.natk_api.baseStorage.context.StorageContext;
 import com.natk.natk_api.baseStorage.intarfece.UploadStrategy;
@@ -52,7 +53,6 @@ public class DepartmentBaseFileService extends BaseFileService<
     private final DepartmentFileMapper departmentFileMapper;
     private final MinioFileService minioFileService;
     private final DepartmentUploadStrategy departmentUploadStrategy;
-    private static final String DEPARTMENT_BUCKET = "department-files";
 
     public DepartmentBaseFileService(
             DepartmentFileRepository fileRepo,
@@ -212,7 +212,7 @@ public class DepartmentBaseFileService extends BaseFileService<
         String encoded = UriUtils.encode(originalName, StandardCharsets.UTF_8);
         String translit = transliterationService.transliterate(originalName);
         StreamingResponseBody body = outputStream -> {
-            try (InputStream stream = minioFileService.downloadFile(DEPARTMENT_BUCKET, file.getStorageKey())) {
+            try (InputStream stream = minioFileService.downloadFile(BucketName.DEPARTMENTS_FILES.value(), file.getStorageKey())) {
                 stream.transferTo(outputStream);
             }
         };
@@ -291,7 +291,7 @@ public class DepartmentBaseFileService extends BaseFileService<
         copy.setStorageKey(newKey);
 
         try {
-            minioFileService.copyObjectServerSide(DEPARTMENT_BUCKET, file.getStorageKey(), newKey);
+            minioFileService.copyObjectServerSide(BucketName.DEPARTMENTS_FILES.value(), file.getStorageKey(), newKey);
         } catch (Exception e) {
             throw new RuntimeException("Ошибка при server-side копировании файла", e);
         }

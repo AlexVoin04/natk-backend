@@ -2,6 +2,7 @@ package com.natk.natk_api.userStorage.service;
 
 import com.natk.natk_api.audit.enums.PurgeAuditType;
 import com.natk.natk_api.audit.service.StoragePurgeAuditService;
+import com.natk.natk_api.baseStorage.enums.BucketName;
 import com.natk.natk_api.baseStorage.PurgeStats;
 import com.natk.natk_api.baseStorage.context.StorageContext;
 import com.natk.natk_api.baseStorage.context.UserContext;
@@ -30,8 +31,6 @@ public class UserPurgeService extends BasePurgeService<UserFolderEntity, UserFil
     private final UserFolderRepository folderRepo;
     private final CurrentUserService currentUserService;
     private final StoragePurgeAuditService audit;
-
-    private static final String BUCKET = "user-files";
 
     public UserPurgeService(MinioFileService minio, UserFileRepository fileRepo, UserFolderRepository folderRepo, CurrentUserService currentUserService, StoragePurgeAuditService audit) {
         super(minio);
@@ -132,7 +131,7 @@ public class UserPurgeService extends BasePurgeService<UserFolderEntity, UserFil
 
     @Override
     protected String bucketName() {
-        return BUCKET;
+        return BucketName.USER_FILES.value();
     }
 
     @Override

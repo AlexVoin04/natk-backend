@@ -1,5 +1,6 @@
 package com.natk.natk_api.userStorage.service;
 
+import com.natk.natk_api.baseStorage.enums.BucketName;
 import com.natk.natk_api.baseStorage.context.StorageContext;
 import com.natk.natk_api.baseStorage.context.UserContext;
 import com.natk.natk_api.baseStorage.intarfece.UploadStrategy;
@@ -44,7 +45,6 @@ public class UserBaseFileService extends BaseFileService<
     private final TransliterationService transliterationService;
     private final MinioFileService minioFileService;
     private final UserUploadStrategy userUploadStrategy;
-    private static final String USER_BUCKET = "user-files";
 
     public UserBaseFileService(
             UserFileRepository fileRepo,
@@ -158,7 +158,7 @@ public class UserBaseFileService extends BaseFileService<
         String encoded = UriUtils.encode(originalName, StandardCharsets.UTF_8);
         String translit = transliterationService.transliterate(originalName);
         StreamingResponseBody body = outputStream -> {
-            try (InputStream stream = minioFileService.downloadFile(USER_BUCKET, file.getStorageKey())) {
+            try (InputStream stream = minioFileService.downloadFile(BucketName.USER_FILES.value(), file.getStorageKey())) {
                 stream.transferTo(outputStream);
             }
         };
@@ -227,7 +227,7 @@ public class UserBaseFileService extends BaseFileService<
         copy.setStorageKey(newKey);
 
         try {
-            minioFileService.copyObjectServerSide(USER_BUCKET, file.getStorageKey(), newKey);
+            minioFileService.copyObjectServerSide(BucketName.USER_FILES.value(), file.getStorageKey(), newKey);
         } catch (Exception e) {
             throw new RuntimeException("Ошибка при server-side копировании файла", e);
         }
