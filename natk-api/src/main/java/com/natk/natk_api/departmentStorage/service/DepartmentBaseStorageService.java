@@ -54,7 +54,8 @@ public class DepartmentBaseStorageService extends BaseStorageService<
 
     protected StorageContext getContext(UUID departmentId) {
         UserEntity user = currentUserService.getCurrentUser();
-        return new DepartmentContext(user, departmentId);
+        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(departmentId);
+        return new DepartmentContext(user, dept);
     }
 
     @Transactional(readOnly = true)
@@ -71,7 +72,7 @@ public class DepartmentBaseStorageService extends BaseStorageService<
     protected DepartmentFolderEntity resolveFolderOrRoot(UUID folderId, StorageContext ctx) {
         if (folderId == null) return null;
         DepartmentContext dCtx = (DepartmentContext) ctx;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+        DepartmentEntity dept = dCtx.department();
         return folderRepo.findByIdAndDepartmentAndIsDeletedFalse(folderId, dept)
                 .orElseThrow(() -> new AccessDeniedException("Folder not found"));
     }
@@ -79,7 +80,7 @@ public class DepartmentBaseStorageService extends BaseStorageService<
     @Override
     protected List<DepartmentFolderEntity> fetchActiveFolders(DepartmentFolderEntity parent, StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+        DepartmentEntity dept = dCtx.department();
         UserEntity user = dCtx.user();
 
         return folderRepo.findByDepartmentAndParentFolderAndIsDeletedFalse(dept, parent).stream()
@@ -90,7 +91,7 @@ public class DepartmentBaseStorageService extends BaseStorageService<
     @Override
     protected List<DepartmentFileEntity> fetchActiveFiles(DepartmentFolderEntity parent, StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+        DepartmentEntity dept = dCtx.department();
         UserEntity user = dCtx.user();
 
         List<DepartmentFileEntity> files = (parent == null)
@@ -108,42 +109,42 @@ public class DepartmentBaseStorageService extends BaseStorageService<
     @Override
     protected List<DepartmentFolderEntity> findDeletedFolders(StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+        DepartmentEntity dept = dCtx.department();
         return folderRepo.findByDepartmentAndIsDeletedTrueOrderByDeletedAtDesc(dept);
     }
 
     @Override
     protected List<DepartmentFileEntity> findDeletedFiles(StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+        DepartmentEntity dept = dCtx.department();
         return fileRepo.findByDepartmentAndIsDeletedTrueOrderByDeletedAtDesc(dept);
     }
 
     @Override
     protected DepartmentStorageItemDto mapFolderToItem(DepartmentFolderEntity folder, StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+        DepartmentEntity dept = dCtx.department();
         return mapper.toStorageItem(folder, dept);
     }
 
     @Override
     protected DepartmentStorageItemDto mapFileToItem(DepartmentFileEntity file, StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+        DepartmentEntity dept = dCtx.department();
         return mapper.toStorageItem(file, dept);
     }
 
     @Override
     protected DepartmentDeletedItemDto mapFolderToDeleted(DepartmentFolderEntity folder, StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+        DepartmentEntity dept = dCtx.department();
         return mapper.toDeletedItem(folder, dept);
     }
 
     @Override
     protected DepartmentDeletedItemDto mapFileToDeleted(DepartmentFileEntity file, StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+        DepartmentEntity dept = dCtx.department();
         return mapper.toDeletedItem(file, dept);
     }
 
@@ -161,7 +162,7 @@ public class DepartmentBaseStorageService extends BaseStorageService<
     protected String resolvePathForResponse(DepartmentFolderEntity folder, StorageContext ctx) {
         if (folder == null) {
             DepartmentContext dCtx = (DepartmentContext) ctx;
-            DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+            DepartmentEntity dept = dCtx.department();
             return "Департамент/" + dept.getName();
         }
 
@@ -169,7 +170,7 @@ public class DepartmentBaseStorageService extends BaseStorageService<
         while (current != null) {
             if (current.isDeleted()) {
                 DepartmentContext dCtx = (DepartmentContext) ctx;
-                DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+                DepartmentEntity dept = dCtx.department();
                 return "Департамент/" + dept.getName();
             }
             current = current.getParentFolder();

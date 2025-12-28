@@ -38,7 +38,7 @@ public class DepartmentUploadStrategy implements UploadStrategy<
 
     @Override
     public DepartmentEntity getOwner(StorageContext ctx) {
-        return accessService.getDepartmentOrThrow(((DepartmentContext) ctx).departmentId());
+        return accessService.getDepartmentOrThrow(((DepartmentContext) ctx).department().getId());
     }
 
     @Override

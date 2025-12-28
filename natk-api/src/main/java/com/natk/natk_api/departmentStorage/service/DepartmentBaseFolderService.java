@@ -82,21 +82,22 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
 
     protected StorageContext getContext(UUID departmentId) {
         UserEntity user = currentUserService.getCurrentUser();
+        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(departmentId);
         if (!departmentAccessService.hasAnyAccess(user, departmentId)) {
             throw new FileOrFolderNotFoundOrNoAccessException();
         }
-        return new DepartmentContext(user, departmentId);
+        return new DepartmentContext(user, dept);
     }
 
     @Override
     protected DepartmentFolderEntity findFolder(UUID id, StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+        DepartmentEntity dept = dCtx.department();
 
         var folder = folderRepo.findByIdAndDepartmentAndIsDeletedFalse(id, dept)
                 .orElseThrow(FileOrFolderNotFoundOrNoAccessException::new);
 
-        if (!folder.getDepartment().getId().equals(dCtx.departmentId())) {
+        if (!folder.getDepartment().getId().equals(dCtx.department().getId())) {
             throw new FileOrFolderNotFoundOrNoAccessException();
         }
 
@@ -109,7 +110,7 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
     @Override
     protected DepartmentFolderEntity findDeletedFolder(UUID id, StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+        DepartmentEntity dept = dCtx.department();
 
         return folderRepo.findByIdAndDepartmentAndIsDeletedTrue(id, dept)
                 .orElseThrow(FileOrFolderNotFoundOrNoAccessException::new);
@@ -118,7 +119,7 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
     @Override
     protected DepartmentFolderEntity buildNewFolder(String name, DepartmentFolderEntity parent, StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+        DepartmentEntity dept = dCtx.department();
 
         DepartmentFolderEntity folder = new DepartmentFolderEntity();
         folder.setName(name);
@@ -135,7 +136,7 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
     protected void checkCreateAccess(DepartmentFolderEntity departmentFolderEntity, StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
         if(departmentFolderEntity == null){
-            if (!departmentAccessService.canManage(dCtx.user(), dCtx.departmentId())) {
+            if (!departmentAccessService.canManage(dCtx.user(), dCtx.department().getId())) {
                 throw new AccessDeniedException("No rights to create folder in this department");
             }
         }
@@ -144,7 +145,7 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
     @Override
     protected void checkUpdateAccess(DepartmentFolderEntity departmentFolderEntity, StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
-        if (!departmentAccessService.canManage(dCtx.user(), dCtx.departmentId())) {
+        if (!departmentAccessService.canManage(dCtx.user(), dCtx.department().getId())) {
             throw new AccessDeniedException("No access rights to the folder");
         }
     }
@@ -162,7 +163,7 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
     @Override
     protected DepartmentFolderDto doCreateFolder(String name, DepartmentFolderEntity parent, StorageContext context) {
         DepartmentContext dCtx = (DepartmentContext) context;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+        DepartmentEntity dept = dCtx.department();
 
         folderNameResolverService.ensureUniqueNameOrThrow(name, parent, dept);
 
@@ -173,7 +174,7 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
     @Override
     protected DepartmentFolderDto applyRename(DepartmentFolderEntity folder, RenameFolderDto dto, StorageContext context) {
         DepartmentContext dCtx = (DepartmentContext) context;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+        DepartmentEntity dept = dCtx.department();
 
         folderNameResolverService.ensureUniqueNameOrThrow(dto.newName(), folder.getParentFolder(), dept, folder.getId());
         folder.setName(dto.newName());
@@ -183,7 +184,7 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
     @Override
     protected DepartmentFolderDto applyMove(DepartmentFolderEntity folder, MoveFolderDto dto, StorageContext context) {
         DepartmentContext dCtx = (DepartmentContext) context;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+        DepartmentEntity dept = dCtx.department();
 
         if (dto.moveToRoot()) {
             folderNameResolverService.ensureUniqueNameOrThrow(folder.getName(), null, dept, folder.getId());
@@ -214,7 +215,7 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
     @Override
     protected DepartmentFolderDto applyRestore(DepartmentFolderEntity folder, DepartmentFolderEntity parent, StorageContext context) {
         DepartmentContext dCtx = (DepartmentContext) context;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+        DepartmentEntity dept = dCtx.department();
         if (parent != null) {
             validateNotMovingIntoSelfOrDescendant(folder.getId(), parent.getId());
         }
@@ -231,7 +232,7 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
     @Override
     protected List<DepartmentFolderDto> applyList(DepartmentFolderEntity parent, StorageContext context) {
         DepartmentContext dCtx = (DepartmentContext) context;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+        DepartmentEntity dept = dCtx.department();
 
         return folderRepo.findByDepartmentAndParentFolderAndIsDeletedFalse(dept, parent).stream()
                 .filter(f -> f.isPublic() || departmentAccessService.hasFolderAccess(dCtx.user(), f))
@@ -242,7 +243,7 @@ public class DepartmentBaseFolderService extends BaseFolderService<DepartmentFol
     @Override
     protected List<FolderTreeDto> applyTree(StorageContext context) {
         DepartmentContext dCtx = (DepartmentContext) context;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+        DepartmentEntity dept = dCtx.department();
 
         List<DepartmentFolderEntity> all = folderRepo.findByDepartmentAndIsDeletedFalse(dept).stream()
                 .filter(f -> f.isPublic() || departmentAccessService.hasFolderAccess(dCtx.user(), f))

@@ -43,37 +43,38 @@ public class DepartmentPurgeService extends BasePurgeService<DepartmentFolderEnt
 
     protected StorageContext getContext(UUID departmentId) {
         UserEntity user = currentUserService.getCurrentUser();
-        if (!departmentAccessService.hasAnyAccess(user, departmentId)) {
+        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(departmentId);
+        if (!departmentAccessService.hasAnyAccess(user, dept.getId())) {
             throw new FileOrFolderNotFoundOrNoAccessException();
         }
-        return new DepartmentContext(user, departmentId);
+        return new DepartmentContext(user, dept);
     }
 
     @Override
     protected Optional<DepartmentFileEntity> loadDeletedFileById(UUID id, StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+        DepartmentEntity dept = dCtx.department();
         return fileRepo.findByIdAndDepartmentAndIsDeletedTrue(id, dept);
     }
 
     @Override
     protected Optional<DepartmentFolderEntity> loadDeletedFolderById(UUID id, StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+        DepartmentEntity dept = dCtx.department();
         return folderRepo.findByIdAndDepartmentAndIsDeletedTrue(id, dept);
     }
 
     @Override
     protected List<DepartmentFolderEntity> findDeletedChildFolders(DepartmentFolderEntity parent, StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+        DepartmentEntity dept = dCtx.department();
         return folderRepo.findByDepartmentAndParentFolderAndIsDeletedTrue(dept, parent);
     }
 
     @Override
     protected List<DepartmentFileEntity> findDeletedFilesInFolder(DepartmentFolderEntity folder, StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+        DepartmentEntity dept = dCtx.department();
         return fileRepo.findByDepartmentAndFolderAndIsDeletedTrue(dept, folder);
     }
 

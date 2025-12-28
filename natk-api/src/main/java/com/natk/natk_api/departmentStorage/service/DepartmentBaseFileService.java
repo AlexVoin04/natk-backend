@@ -123,16 +123,17 @@ public class DepartmentBaseFileService extends BaseFileService<
 
     protected StorageContext getContext(UUID departmentId) {
         UserEntity user = currentUserService.getCurrentUser();
+        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(departmentId);
         if (!departmentAccessService.hasAnyAccess(user, departmentId)) {
             throw new FileOrFolderNotFoundOrNoAccessException();
         }
-        return new DepartmentContext(user, departmentId);
+        return new DepartmentContext(user, dept);
     }
 
     @Override
     protected DepartmentFileEntity findFile(UUID id, StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+        DepartmentEntity dept = dCtx.department();
         return fileRepo.findByIdAndDepartmentAndIsDeletedFalse(id, dept)
                 .orElseThrow(FileOrFolderNotFoundOrNoAccessException::new);
     }
@@ -140,7 +141,7 @@ public class DepartmentBaseFileService extends BaseFileService<
     @Override
     protected DepartmentFileEntity findDeletedFile(UUID id, StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+        DepartmentEntity dept = dCtx.department();
         return fileRepo.findByIdAndDepartmentAndIsDeletedTrue(id, dept)
                 .orElseThrow(FileOrFolderNotFoundOrNoAccessException::new);
     }
@@ -148,12 +149,12 @@ public class DepartmentBaseFileService extends BaseFileService<
     @Override
     protected DepartmentFolderEntity findFolder(UUID id, StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+        DepartmentEntity dept = dCtx.department();
 
         var folder = folderRepo.findByIdAndDepartmentAndIsDeletedFalse(id, dept)
                 .orElseThrow(FileOrFolderNotFoundOrNoAccessException::new);
 
-        if (!folder.getDepartment().getId().equals(dCtx.departmentId())) {
+        if (!folder.getDepartment().getId().equals(dCtx.department().getId())) {
             throw new FileOrFolderNotFoundOrNoAccessException();
         }
 
@@ -172,7 +173,7 @@ public class DepartmentBaseFileService extends BaseFileService<
     protected void checkUploadAccess(DepartmentFolderEntity folder, StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
         if (folder == null) {
-            if (!departmentAccessService.hasAnyAccess(dCtx.user(), dCtx.departmentId())) {
+            if (!departmentAccessService.hasAnyAccess(dCtx.user(), dCtx.department().getId())) {
                 throw new AccessDeniedException("Access denied to upload file in root");
             }
         } else {
@@ -190,7 +191,7 @@ public class DepartmentBaseFileService extends BaseFileService<
     @Override
     protected void checkRestoreAccess(DepartmentFileEntity file, StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
-        if (!departmentAccessService.canManage(dCtx.user(), dCtx.departmentId())) {
+        if (!departmentAccessService.canManage(dCtx.user(), dCtx.department().getId())) {
             throw new AccessDeniedException("No rights to delete file in department");
         }
     }
@@ -229,7 +230,7 @@ public class DepartmentBaseFileService extends BaseFileService<
     @Override
     protected DepartmentFileInfoDto applyRestore(DepartmentFileEntity file, DepartmentFolderEntity folder, StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+        DepartmentEntity dept = dCtx.department();
         String unique = fileNameResolverService.ensureUniqueName(file.getName(), folder, dept, file.getId());
 
         file.setName(unique);
@@ -243,7 +244,7 @@ public class DepartmentBaseFileService extends BaseFileService<
     @Override
     protected List<DepartmentFileInfoDto> applyList(DepartmentFolderEntity folder, StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+        DepartmentEntity dept = dCtx.department();
         if (folder != null) {
             return fileRepo.findByDepartmentAndFolderAndIsDeletedFalse(dept, folder)
                     .stream().map(this::mapToDto).toList();
@@ -256,7 +257,7 @@ public class DepartmentBaseFileService extends BaseFileService<
     @Override
     protected DepartmentFileInfoDto applyRename(DepartmentFileEntity file, String newName, StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+        DepartmentEntity dept = dCtx.department();
         fileNameResolverService.ensureUniqueNameOrThrow(newName, file.getFolder(), dept, file.getId());
         file.setName(newName);
         return mapToDto(fileRepo.save(file));
@@ -265,7 +266,7 @@ public class DepartmentBaseFileService extends BaseFileService<
     @Override
     protected DepartmentFileInfoDto applyMove(DepartmentFileEntity file, DepartmentFolderEntity newFolder, StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+        DepartmentEntity dept = dCtx.department();
         fileNameResolverService.ensureUniqueNameOrThrow(file.getName(), file.getFolder(), dept, file.getId());
         file.setFolder(newFolder);
         return mapToDto(fileRepo.save(file));
@@ -274,7 +275,7 @@ public class DepartmentBaseFileService extends BaseFileService<
     @Override
     protected DepartmentFileInfoDto applyCopy(DepartmentFileEntity file, DepartmentFolderEntity folder, StorageContext ctx) {
         DepartmentContext dCtx = (DepartmentContext) ctx;
-        DepartmentEntity dept = departmentAccessService.getDepartmentOrThrow(dCtx.departmentId());
+        DepartmentEntity dept = dCtx.department();
         String unique = fileNameResolverService.ensureUniqueName(file.getName(), folder, dept, null);
 
         DepartmentFileEntity copy = new DepartmentFileEntity();
