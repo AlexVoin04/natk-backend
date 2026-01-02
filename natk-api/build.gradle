@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'com.natk'
-version = '0.5.4'
+version = '0.5.5'
 
 java {
 	toolchain {
@@ -82,6 +82,14 @@ tasks.named('test') {
 
 jib {
 	from {
+		// для локальной быстрой сборки (в связи с региональными ограничениями):
+		// 1.  docker pull bellsoft/liberica-openjdk-alpine:21.0.8
+		// 2. from.image = 'docker://bellsoft/liberica-openjdk-alpine:21.0.8'
+		// 3. Закомментировать:
+		//			platform {
+		//				architecture = 'arm64'
+		//				os = 'linux'
+		//			}
 		image = "bellsoft/liberica-openjdk-alpine:21.0.8"
 		platforms {
 			platform {

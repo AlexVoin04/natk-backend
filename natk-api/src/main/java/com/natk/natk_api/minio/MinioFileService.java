@@ -4,10 +4,12 @@ import io.minio.BucketExistsArgs;
 import io.minio.CopyObjectArgs;
 import io.minio.CopySource;
 import io.minio.GetObjectArgs;
+import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
+import io.minio.http.Method;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -154,6 +156,21 @@ public class MinioFileService {
                                 .build())
                         .build()
         );
+    }
+
+    public String generatePresignedUrl(String bucket, String key, int expiresSeconds) {
+        try {
+            return minioClient.getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                            .method(Method.GET)
+                            .bucket(bucket)
+                            .object(key)
+                            .expiry(expiresSeconds)
+                            .build()
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate presigned URL", e);
+        }
     }
 
     public String generateUserFileKey(UUID userId) {

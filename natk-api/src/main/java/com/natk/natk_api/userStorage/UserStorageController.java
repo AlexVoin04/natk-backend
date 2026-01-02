@@ -1,18 +1,19 @@
 package com.natk.natk_api.userStorage;
 
 import com.natk.natk_api.baseStorage.PurgeStats;
+import com.natk.natk_api.baseStorage.dto.CreateFolderDto;
+import com.natk.natk_api.baseStorage.dto.FileDownloadDto;
+import com.natk.natk_api.baseStorage.dto.FolderTreeDto;
 import com.natk.natk_api.baseStorage.dto.MoveFileDto;
 import com.natk.natk_api.baseStorage.dto.MoveFolderDto;
 import com.natk.natk_api.baseStorage.dto.RenameFileDto;
 import com.natk.natk_api.baseStorage.dto.RenameFolderDto;
+import com.natk.natk_api.baseStorage.dto.SignedUrlResponse;
+import com.natk.natk_api.baseStorage.dto.UploadFileDto;
 import com.natk.natk_api.departmentStorage.dto.PurgeItemDto;
 import com.natk.natk_api.llms.dto.QuestionRequestDto;
 import com.natk.natk_api.llms.dto.QuestionResponseDto;
 import com.natk.natk_api.llms.service.QuestionGenerationService;
-import com.natk.natk_api.baseStorage.dto.CreateFolderDto;
-import com.natk.natk_api.baseStorage.dto.FileDownloadDto;
-import com.natk.natk_api.baseStorage.dto.FolderTreeDto;
-import com.natk.natk_api.baseStorage.dto.UploadFileDto;
 import com.natk.natk_api.userStorage.dto.FileInfoDto;
 import com.natk.natk_api.userStorage.dto.FolderContentResponseDto;
 import com.natk.natk_api.userStorage.dto.FolderDto;
@@ -146,7 +147,7 @@ public class UserStorageController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=\"" + dto.translitName() + "\"; filename*=UTF-8''" + dto.encodedName())
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentType(dto.fileType())
                 .body(dto.body());
     }
 
@@ -159,6 +160,14 @@ public class UserStorageController {
     @PostMapping("/files/{id}/copy")
     public FileInfoDto copyFile(@PathVariable UUID id, @RequestParam(required = false) UUID targetFolderId) {
         return userFileService.copyFile(id, targetFolderId);
+    }
+
+    @GetMapping("/files/{id}/signed-url")
+    public SignedUrlResponse getFileSignedUrl(
+            @PathVariable UUID id,
+            @RequestParam(name = "expires", required = false, defaultValue = "300") int expiresSeconds
+    ) {
+        return userFileService.getFileSignedUrl(id, expiresSeconds);
     }
 
     @GetMapping("/items")

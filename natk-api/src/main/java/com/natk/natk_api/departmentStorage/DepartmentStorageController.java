@@ -1,9 +1,6 @@
 package com.natk.natk_api.departmentStorage;
 
-import com.natk.natk_api.baseStorage.dto.MoveFileDto;
-import com.natk.natk_api.baseStorage.dto.MoveFolderDto;
-import com.natk.natk_api.baseStorage.dto.RenameFileDto;
-import com.natk.natk_api.baseStorage.dto.RenameFolderDto;
+import com.natk.natk_api.baseStorage.dto.*;
 import com.natk.natk_api.departmentStorage.dto.DepartmentDeletedItemDto;
 import com.natk.natk_api.departmentStorage.dto.DepartmentFileInfoDto;
 import com.natk.natk_api.departmentStorage.dto.DepartmentFolderDto;
@@ -11,10 +8,6 @@ import com.natk.natk_api.departmentStorage.dto.DepartmentStorageItemDto;
 import com.natk.natk_api.departmentStorage.dto.PurgeItemDto;
 import com.natk.natk_api.departmentStorage.service.DepartmentBaseFileService;
 import com.natk.natk_api.departmentStorage.service.DepartmentBaseFolderService;
-import com.natk.natk_api.baseStorage.dto.CreateFolderDto;
-import com.natk.natk_api.baseStorage.dto.FileDownloadDto;
-import com.natk.natk_api.baseStorage.dto.FolderTreeDto;
-import com.natk.natk_api.baseStorage.dto.UploadFileDto;
 import com.natk.natk_api.departmentStorage.service.DepartmentBaseStorageService;
 import com.natk.natk_api.departmentStorage.service.DepartmentPurgeService;
 import com.natk.natk_api.userStorage.dto.FolderContentResponseDto;
@@ -185,7 +178,7 @@ public class DepartmentStorageController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=\"" + dto.translitName() + "\"; filename*=UTF-8''" + dto.encodedName())
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentType(dto.fileType())
                 .body(dto.body());
     }
 
@@ -197,6 +190,16 @@ public class DepartmentStorageController {
             @RequestParam(required = false) UUID targetFolderId
     ) {
         return departmentFileService.copyFile(id, targetFolderId, departmentId);
+    }
+
+    @GetMapping("/files/{id}/signed-url")
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'ACCESS')")
+    public SignedUrlResponse getDepartmentFileSignedUrl(
+            @PathVariable UUID departmentId,
+            @PathVariable UUID id,
+            @RequestParam(name = "expires", required = false, defaultValue = "300") int expiresSeconds
+    ) {
+        return departmentFileService.getFileSignedUrl(id, departmentId, expiresSeconds);
     }
 
     @GetMapping("/items")
