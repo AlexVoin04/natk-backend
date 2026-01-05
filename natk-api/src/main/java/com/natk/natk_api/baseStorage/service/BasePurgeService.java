@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 public abstract class BasePurgeService<TFolder, TFile> {
@@ -82,21 +81,23 @@ public abstract class BasePurgeService<TFolder, TFile> {
         folderAccessForFolder(root, ctx);
 
         // Собираем все файлы в subtree для удаления из MinIO
-        List<TFile> filesToDelete = new ArrayList<>();
-        collectFilesRecursive(root, filesToDelete, ctx);
+        List<TFile> filesAcc = new ArrayList<>();
+        List<TFolder> foldersAcc = new ArrayList<>();
+
+        collectDeletedSubtree(root, filesAcc, foldersAcc, ctx);
 
         // Получаем ключи для MinIO
-        List<String> keys = filesToDelete.stream()
+        List<String> keys = filesAcc.stream()
                 .map(f -> extractStorageKey(f, ctx))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
 
-        // Удаляем корневую папку — все дочерние удалятся автоматически
-        deleteFolderEntities(List.of(root), ctx);
+        deleteFileEntities(filesAcc, ctx);
+        deleteFolderEntities(foldersAcc, ctx);
 
         // После коммита удаляем файлы из MinIO
         registerMinioDeleteAfterCommit(keys);
-        return new PurgeStats(filesToDelete.size(), 1);
+        return new PurgeStats(filesAcc.size(), foldersAcc.size());
     }
 
     // DFS только для файлов
