@@ -1,6 +1,6 @@
 services:
   natk-frontend:
-    image: '${REGISTRY:-}natk-frontend:0.3.2'
+    image: '${REGISTRY:-}natk-frontend:0.4.0'
     ports:
       - "8088:80"
     networks:
