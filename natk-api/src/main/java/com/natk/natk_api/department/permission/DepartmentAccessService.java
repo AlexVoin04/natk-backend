@@ -25,6 +25,7 @@ public class DepartmentAccessService {
                 .orElseThrow(FileOrFolderNotFoundOrNoAccessException::new);
     }
 
+    //TODO: добавить реализацию hasFolderAccess в контроллере
     public enum Permission {
         MANAGE, // управление папками/департаментом
         ACCESS  // базовый доступ

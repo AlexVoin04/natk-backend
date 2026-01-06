@@ -1,16 +1,22 @@
 package com.natk.natk_api.userStorage;
 
+import com.natk.natk_api.baseStorage.PurgeStats;
+import com.natk.natk_api.baseStorage.dto.BulkDeleteResult;
+import com.natk.natk_api.baseStorage.dto.CreateFolderDto;
+import com.natk.natk_api.baseStorage.dto.FileDownloadDto;
+import com.natk.natk_api.baseStorage.dto.FolderTreeDto;
 import com.natk.natk_api.baseStorage.dto.MoveFileDto;
 import com.natk.natk_api.baseStorage.dto.MoveFolderDto;
 import com.natk.natk_api.baseStorage.dto.RenameFileDto;
 import com.natk.natk_api.baseStorage.dto.RenameFolderDto;
+import com.natk.natk_api.baseStorage.dto.SignedUrlResponse;
+import com.natk.natk_api.baseStorage.dto.UploadFileDto;
+import com.natk.natk_api.baseStorage.service.BulkDeleteService;
+import com.natk.natk_api.departmentStorage.dto.PurgeItemDto;
 import com.natk.natk_api.llms.dto.QuestionRequestDto;
 import com.natk.natk_api.llms.dto.QuestionResponseDto;
 import com.natk.natk_api.llms.service.QuestionGenerationService;
-import com.natk.natk_api.baseStorage.dto.CreateFolderDto;
-import com.natk.natk_api.baseStorage.dto.FileDownloadDto;
-import com.natk.natk_api.baseStorage.dto.FolderTreeDto;
-import com.natk.natk_api.baseStorage.dto.UploadFileDto;
+import com.natk.natk_api.userStorage.context.UserDeletionContext;
 import com.natk.natk_api.userStorage.dto.FileInfoDto;
 import com.natk.natk_api.userStorage.dto.FolderContentResponseDto;
 import com.natk.natk_api.userStorage.dto.FolderDto;
@@ -19,6 +25,7 @@ import com.natk.natk_api.userStorage.dto.UserStorageItemDto;
 import com.natk.natk_api.userStorage.service.UserBaseFileService;
 import com.natk.natk_api.userStorage.service.UserBaseFolderService;
 import com.natk.natk_api.userStorage.service.UserBaseStorageService;
+import com.natk.natk_api.userStorage.service.UserPurgeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -49,6 +56,9 @@ public class UserStorageController {
     private final UserBaseFolderService userFolderService;
     private final UserBaseStorageService userStorageService;
     private final QuestionGenerationService questionGenerationService;
+    private final UserPurgeService userPurgeService;
+    private final BulkDeleteService bulkDeleteService;
+    private final UserDeletionContext userDeletionContext;
 
     @PostMapping("/folders")
     public FolderDto createFolder(@RequestBody CreateFolderDto dto) {
@@ -142,7 +152,7 @@ public class UserStorageController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=\"" + dto.translitName() + "\"; filename*=UTF-8''" + dto.encodedName())
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentType(dto.fileType())
                 .body(dto.body());
     }
 
@@ -157,13 +167,44 @@ public class UserStorageController {
         return userFileService.copyFile(id, targetFolderId);
     }
 
+    @GetMapping("/files/{id}/signed-url")
+    public SignedUrlResponse getFileSignedUrl(
+            @PathVariable UUID id,
+            @RequestParam(name = "expires", required = false, defaultValue = "300") int expiresSeconds
+    ) {
+        return userFileService.getFileSignedUrl(id, expiresSeconds);
+    }
+
     @GetMapping("/items")
     public FolderContentResponseDto<UserStorageItemDto> listFolderItems(@RequestParam(required = false) UUID folderId) {
         return userStorageService.getStorageItems(folderId);
     }
 
+    @DeleteMapping("/items")
+    public ResponseEntity<BulkDeleteResult> deleteItems(@RequestBody List<PurgeItemDto> items) {
+        BulkDeleteResult result = bulkDeleteService.deleteMultiple(items, userDeletionContext);
+        return ResponseEntity.ok(result);
+    }
+
     @GetMapping("/bin")
     public List<UserDeletedItemDto> getBinItems() {
         return userStorageService.getDeletedItems();
+    }
+
+    @DeleteMapping("/bin/files/{id}/purge")
+    public ResponseEntity<?> purgeDeletedFile(@PathVariable UUID id) {
+        userPurgeService.purgeFile(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/bin/folders/{id}/purge")
+    public ResponseEntity<?> purgeDeletedFolder(@PathVariable UUID id) {
+        userPurgeService.purgeFolder(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/bin/purge")
+    public PurgeStats purgeMultiple(@RequestBody List<PurgeItemDto> items) {
+        return userPurgeService.purgeMultiple(items);
     }
 }

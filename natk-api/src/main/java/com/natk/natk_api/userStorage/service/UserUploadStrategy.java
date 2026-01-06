@@ -1,7 +1,7 @@
 package com.natk.natk_api.userStorage.service;
 
 import com.natk.common.messaging.ScanTask;
-import com.natk.natk_api.baseStorage.FileStatus;
+import com.natk.natk_api.baseStorage.enums.FileStatus;
 import com.natk.natk_api.baseStorage.MagicValidationResult;
 import com.natk.natk_api.baseStorage.context.StorageContext;
 import com.natk.natk_api.baseStorage.context.UserContext;

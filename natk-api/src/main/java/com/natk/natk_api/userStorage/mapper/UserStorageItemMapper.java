@@ -16,7 +16,9 @@ public class UserStorageItemMapper extends AbstractStorageItemMapper<UserFolderE
                 folder.getName(),
                 "folder",
                 folder.getCreatedAt(),
-                folder.getUpdatedAt()
+                folder.getUpdatedAt(),
+                null,
+                null
         );
     }
 
@@ -26,7 +28,9 @@ public class UserStorageItemMapper extends AbstractStorageItemMapper<UserFolderE
                 file.getName(),
                 file.getFileType(),
                 file.getCreatedAt(),
-                null // файлы не обновляются
+                null, // файлы не обновляются
+                file.getStatus(),
+                file.getFileSize()
         );
     }
 

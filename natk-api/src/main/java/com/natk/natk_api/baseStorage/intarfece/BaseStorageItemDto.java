@@ -1,5 +1,7 @@
 package com.natk.natk_api.baseStorage.intarfece;
 
+import com.natk.natk_api.baseStorage.enums.FileStatus;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -9,5 +11,7 @@ public interface BaseStorageItemDto {
     String type();
     Instant createdAt();
     Instant updatedAt();
+    FileStatus fileAntivirusStatus();
+    Long size();
 }
 

@@ -1,6 +1,6 @@
 package com.natk.natk_api.userStorage.model;
 
-import com.natk.natk_api.baseStorage.FileStatus;
+import com.natk.natk_api.baseStorage.enums.FileStatus;
 import com.natk.natk_api.users.model.UserEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

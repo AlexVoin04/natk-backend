@@ -1,7 +1,8 @@
 package com.natk.natk_api.departmentStorage.service;
 
 import com.natk.common.messaging.ScanTask;
-import com.natk.natk_api.baseStorage.FileStatus;
+import com.natk.natk_api.baseStorage.enums.BucketName;
+import com.natk.natk_api.baseStorage.enums.FileStatus;
 import com.natk.natk_api.baseStorage.MagicValidationResult;
 import com.natk.natk_api.baseStorage.context.DepartmentContext;
 import com.natk.natk_api.baseStorage.context.StorageContext;
@@ -37,7 +38,7 @@ public class DepartmentUploadStrategy implements UploadStrategy<
 
     @Override
     public DepartmentEntity getOwner(StorageContext ctx) {
-        return accessService.getDepartmentOrThrow(((DepartmentContext) ctx).departmentId());
+        return accessService.getDepartmentOrThrow(((DepartmentContext) ctx).department().getId());
     }
 
     @Override
@@ -57,7 +58,7 @@ public class DepartmentUploadStrategy implements UploadStrategy<
 
     @Override
     public void uploadToMinio(InputStream stream, long size, String key, String mimeType) {
-        minio.uploadFile(stream, size, "incoming", key, mimeType);
+        minio.uploadFile(stream, size, BucketName.INCOMING.value(), key, mimeType);
     }
 
     @Override

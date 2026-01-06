@@ -1,5 +1,6 @@
 package com.natk.natk_api.minio;
 
+import com.natk.natk_api.baseStorage.enums.BucketName;
 import com.natk.natk_api.departmentStorage.model.DepartmentFileEntity;
 import com.natk.natk_api.departmentStorage.repository.DepartmentFileRepository;
 import com.natk.natk_api.userStorage.model.UserFileEntity;
@@ -27,8 +28,8 @@ public class FileMigrationRunner implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        ensureBucketExists("department-files");
-        ensureBucketExists("user-files");
+        ensureBucketExists(BucketName.DEPARTMENTS_FILES.value());
+        ensureBucketExists(BucketName.USER_FILES.value());
 
         migrateDepartmentFiles();
         migrateUserFiles();
@@ -50,7 +51,7 @@ public class FileMigrationRunner implements CommandLineRunner {
 
                 minioClient.putObject(
                         PutObjectArgs.builder()
-                                .bucket("department-files")
+                                .bucket(BucketName.DEPARTMENTS_FILES.value())
                                 .object(key)
                                 .stream(new ByteArrayInputStream(data), data.length, -1)
                                 .contentType(contentType)
@@ -86,7 +87,7 @@ public class FileMigrationRunner implements CommandLineRunner {
 
                 minioClient.putObject(
                         PutObjectArgs.builder()
-                                .bucket("user-files")
+                                .bucket(BucketName.USER_FILES.value())
                                 .object(key)
                                 .stream(new ByteArrayInputStream(data), data.length, -1)
                                 .contentType(contentType)

@@ -3,6 +3,7 @@ package com.natk.natk_api.baseStorage.service;
 import com.natk.natk_api.baseStorage.MagicValidationResult;
 import com.natk.natk_api.baseStorage.context.StorageContext;
 import com.natk.natk_api.baseStorage.dto.FileDownloadDto;
+import com.natk.natk_api.baseStorage.dto.SignedUrlResponse;
 import com.natk.natk_api.baseStorage.dto.UploadFileDto;
 import com.natk.natk_api.baseStorage.intarfece.UploadStrategy;
 import com.natk.natk_api.rabbit.ScanTaskPublisher;
@@ -112,6 +113,20 @@ public abstract class BaseFileService<TFile, TFolder,
         return applyCopy(file, folder, ctx);
     }
 
+    @Transactional(readOnly = true)
+    public SignedUrlResponse getFileSignedUrl(UUID fileId, int expirySeconds, StorageContext ctx){
+        TFile file = findFile(fileId, ctx);
+        checkReadAccess(file, ctx);
+
+        String url = generatePresignedUrl(file, expirySeconds, ctx);
+
+        return new SignedUrlResponse(
+                url,
+                extractFileName(file),
+                extractMimeType(file)
+        );
+    }
+
     protected TDto applyUploadFile(UploadFileDto dto, TFolder folder, StorageContext ctx) {
         UploadStrategy<TFile, TFolder, TFileRepo,  TOwner> strategy = getUploadStrategy();
         TOwner owner = strategy.getOwner(ctx);
@@ -161,6 +176,10 @@ public abstract class BaseFileService<TFile, TFolder,
         }
         return mapToDto(saved);
     }
+
+    protected abstract String extractFileName(TFile file);
+    protected abstract String extractMimeType(TFile file);
+    protected abstract String generatePresignedUrl(TFile file, int expirySeconds, StorageContext ctx);
 
     protected abstract TFile findFile(UUID id, StorageContext ctx);
     protected abstract TFile findDeletedFile(UUID id, StorageContext ctx);

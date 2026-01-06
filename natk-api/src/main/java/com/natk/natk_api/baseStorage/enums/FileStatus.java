@@ -1,4 +1,4 @@
-package com.natk.natk_api.baseStorage;
+package com.natk.natk_api.baseStorage.enums;
 
 public enum FileStatus {
     UPLOADED_PENDING_SCAN,

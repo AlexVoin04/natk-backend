@@ -1,5 +1,7 @@
 package com.natk.natk_api.userStorage.service;
 
+import com.natk.natk_api.baseStorage.dto.SignedUrlResponse;
+import com.natk.natk_api.baseStorage.enums.BucketName;
 import com.natk.natk_api.baseStorage.context.StorageContext;
 import com.natk.natk_api.baseStorage.context.UserContext;
 import com.natk.natk_api.baseStorage.intarfece.UploadStrategy;
@@ -18,6 +20,7 @@ import com.natk.natk_api.userStorage.repository.UserFileRepository;
 import com.natk.natk_api.userStorage.repository.UserFolderRepository;
 import com.natk.natk_api.users.model.UserEntity;
 import com.natk.natk_api.users.service.CurrentUserService;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
@@ -44,7 +47,6 @@ public class UserBaseFileService extends BaseFileService<
     private final TransliterationService transliterationService;
     private final MinioFileService minioFileService;
     private final UserUploadStrategy userUploadStrategy;
-    private static final String USER_BUCKET = "user-files";
 
     public UserBaseFileService(
             UserFileRepository fileRepo,
@@ -114,6 +116,11 @@ public class UserBaseFileService extends BaseFileService<
         return super.copyFile(fileId, targetFolderId, getContext());
     }
 
+    @Transactional(readOnly = true)
+    public SignedUrlResponse getFileSignedUrl(UUID fileId, int expirySeconds){
+        return super.getFileSignedUrl(fileId, expirySeconds, getContext());
+    }
+
     @Override
     protected UserFileEntity findFile(UUID id, StorageContext ctx) {
         UserEntity user = ((UserContext) ctx).user();
@@ -157,12 +164,13 @@ public class UserBaseFileService extends BaseFileService<
         String originalName = file.getName();
         String encoded = UriUtils.encode(originalName, StandardCharsets.UTF_8);
         String translit = transliterationService.transliterate(originalName);
+        MediaType type = MediaType.parseMediaType(file.getFileType());
         StreamingResponseBody body = outputStream -> {
-            try (InputStream stream = minioFileService.downloadFile(USER_BUCKET, file.getStorageKey())) {
+            try (InputStream stream = minioFileService.downloadFile(BucketName.USER_FILES.value(), file.getStorageKey())) {
                 stream.transferTo(outputStream);
             }
         };
-        return new FileDownloadDto(body, originalName, encoded, translit);
+        return new FileDownloadDto(body, originalName, encoded, translit, type);
     }
 
     @Override
@@ -227,7 +235,7 @@ public class UserBaseFileService extends BaseFileService<
         copy.setStorageKey(newKey);
 
         try {
-            minioFileService.copyObjectServerSide(USER_BUCKET, file.getStorageKey(), newKey);
+            minioFileService.copyObjectServerSide(BucketName.USER_FILES.value(), file.getStorageKey(), newKey);
         } catch (Exception e) {
             throw new RuntimeException("Ошибка при server-side копировании файла", e);
         }
@@ -238,5 +246,24 @@ public class UserBaseFileService extends BaseFileService<
     @Override
     protected FileInfoDto mapToDto(UserFileEntity file) {
         return fileMapper.toDto(file);
+    }
+
+    @Override
+    protected String generatePresignedUrl(UserFileEntity file, int expirySeconds, StorageContext ctx) {
+        return minioFileService.generatePresignedUrl(
+                BucketName.USER_FILES.value(),
+                file.getStorageKey(),
+                expirySeconds
+        );
+    }
+
+    @Override
+    protected String extractFileName(UserFileEntity file) {
+        return file.getName();
+    }
+
+    @Override
+    protected String extractMimeType(UserFileEntity file) {
+        return file.getFileType();
     }
 }

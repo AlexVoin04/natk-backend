@@ -1,5 +1,6 @@
 package com.natk.natk_api.departmentStorage.dto;
 
+import com.natk.natk_api.baseStorage.enums.FileStatus;
 import com.natk.natk_api.baseStorage.intarfece.BaseStorageItemDto;
 
 import java.time.Instant;
@@ -11,5 +12,7 @@ public record DepartmentStorageItemDto(
         String type,
         Instant createdAt,
         Instant updatedAt,
-        String user
+        String user,
+        FileStatus fileAntivirusStatus,
+        Long size
 ) implements BaseStorageItemDto {}

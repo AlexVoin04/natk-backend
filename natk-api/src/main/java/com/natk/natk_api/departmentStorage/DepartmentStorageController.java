@@ -1,20 +1,27 @@
 package com.natk.natk_api.departmentStorage;
 
+import com.natk.natk_api.baseStorage.dto.BulkDeleteResult;
+import com.natk.natk_api.baseStorage.dto.CreateFolderDto;
+import com.natk.natk_api.baseStorage.dto.FileDownloadDto;
+import com.natk.natk_api.baseStorage.dto.FolderTreeDto;
 import com.natk.natk_api.baseStorage.dto.MoveFileDto;
 import com.natk.natk_api.baseStorage.dto.MoveFolderDto;
 import com.natk.natk_api.baseStorage.dto.RenameFileDto;
 import com.natk.natk_api.baseStorage.dto.RenameFolderDto;
+import com.natk.natk_api.baseStorage.dto.SignedUrlResponse;
+import com.natk.natk_api.baseStorage.dto.UploadFileDto;
+import com.natk.natk_api.baseStorage.intarfece.DeletionContext;
+import com.natk.natk_api.baseStorage.service.BulkDeleteService;
+import com.natk.natk_api.departmentStorage.context.DepartmentDeletionContextFactory;
 import com.natk.natk_api.departmentStorage.dto.DepartmentDeletedItemDto;
 import com.natk.natk_api.departmentStorage.dto.DepartmentFileInfoDto;
 import com.natk.natk_api.departmentStorage.dto.DepartmentFolderDto;
 import com.natk.natk_api.departmentStorage.dto.DepartmentStorageItemDto;
+import com.natk.natk_api.departmentStorage.dto.PurgeItemDto;
 import com.natk.natk_api.departmentStorage.service.DepartmentBaseFileService;
 import com.natk.natk_api.departmentStorage.service.DepartmentBaseFolderService;
-import com.natk.natk_api.baseStorage.dto.CreateFolderDto;
-import com.natk.natk_api.baseStorage.dto.FileDownloadDto;
-import com.natk.natk_api.baseStorage.dto.FolderTreeDto;
-import com.natk.natk_api.baseStorage.dto.UploadFileDto;
 import com.natk.natk_api.departmentStorage.service.DepartmentBaseStorageService;
+import com.natk.natk_api.departmentStorage.service.DepartmentPurgeService;
 import com.natk.natk_api.userStorage.dto.FolderContentResponseDto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +29,16 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
@@ -37,6 +53,9 @@ public class DepartmentStorageController {
     private final DepartmentBaseFolderService folderService;
     private final DepartmentBaseFileService departmentFileService;
     private final DepartmentBaseStorageService departmentStorageService;
+    private final DepartmentPurgeService departmentPurgeService;
+    private final BulkDeleteService bulkDeleteService;
+    private final DepartmentDeletionContextFactory deptCtxFactory;
 
     @PostMapping("/folders")
     @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'ACCESS')")
@@ -173,7 +192,7 @@ public class DepartmentStorageController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=\"" + dto.translitName() + "\"; filename*=UTF-8''" + dto.encodedName())
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentType(dto.fileType())
                 .body(dto.body());
     }
 
@@ -187,6 +206,16 @@ public class DepartmentStorageController {
         return departmentFileService.copyFile(id, targetFolderId, departmentId);
     }
 
+    @GetMapping("/files/{id}/signed-url")
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'ACCESS')")
+    public SignedUrlResponse getDepartmentFileSignedUrl(
+            @PathVariable UUID departmentId,
+            @PathVariable UUID id,
+            @RequestParam(name = "expires", required = false, defaultValue = "300") int expiresSeconds
+    ) {
+        return departmentFileService.getFileSignedUrl(id, departmentId, expiresSeconds);
+    }
+
     @GetMapping("/items")
     @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'ACCESS')")
     public FolderContentResponseDto<DepartmentStorageItemDto> listFolderItems(
@@ -196,11 +225,52 @@ public class DepartmentStorageController {
         return departmentStorageService.getStorageItems(folderId, departmentId);
     }
 
+    @DeleteMapping("/items")
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'MANAGE')")
+    public ResponseEntity<BulkDeleteResult> deleteItems(
+            @PathVariable UUID departmentId,
+            @RequestBody List<PurgeItemDto> items
+    ) {
+        DeletionContext ctx = deptCtxFactory.forDepartment(departmentId);
+        BulkDeleteResult result = bulkDeleteService.deleteMultiple(items, ctx);
+        return ResponseEntity.ok(result);
+    }
+
     @GetMapping("/bin")
     @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'MANAGE')")
     public List<DepartmentDeletedItemDto> getBinItems(
             @PathVariable UUID departmentId
     ) {
         return departmentStorageService.getDeletedItems(departmentId);
+    }
+
+    @DeleteMapping("/bin/files/{id}/purge")
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'MANAGE')")
+    public ResponseEntity<?> purgeDeletedFile(
+            @PathVariable UUID departmentId,
+            @PathVariable UUID id
+    ) {
+        departmentPurgeService.purgeFile(id, departmentId);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/bin/folders/{id}/purge")
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'MANAGE')")
+    public ResponseEntity<?> purgeDeletedFolder(
+            @PathVariable UUID departmentId,
+            @PathVariable UUID id
+    ) {
+        departmentPurgeService.purgeFolder(id, departmentId);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/bin/purge")
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'MANAGE')")
+    public ResponseEntity<?> purgeMultiple(
+            @PathVariable UUID departmentId,
+            @RequestBody List<PurgeItemDto> items
+    ) {
+        departmentPurgeService.purgeMultiple(items, departmentId);
+        return ResponseEntity.ok().build();
     }
 }

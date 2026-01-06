@@ -1,6 +1,7 @@
 package com.natk.natk_api.clamav.user;
 
-import com.natk.natk_api.baseStorage.FileStatus;
+import com.natk.natk_api.baseStorage.enums.BucketName;
+import com.natk.natk_api.baseStorage.enums.FileStatus;
 import com.natk.natk_api.minio.MinioFileService;
 import com.natk.natk_api.userStorage.model.UserFileEntity;
 import com.natk.natk_api.userStorage.repository.UserFileRepository;
@@ -25,8 +26,8 @@ public class UserFileScanService {
             UserFileEntity file = getFileOrThrow(id);
 
             String newKey = minio.generateUserFileKey(file.getCreatedBy().getId());
-            minio.copyObjectServerSide("incoming", file.getStorageKey(), "user-files", newKey);
-            minio.deleteFile("incoming", file.getStorageKey());
+            minio.copyObjectServerSide(BucketName.INCOMING.value(), file.getStorageKey(), BucketName.USER_FILES.value(), newKey);
+            minio.deleteFile(BucketName.INCOMING.value(), file.getStorageKey());
 
             file.setStorageKey(newKey);
             file.setStatus(FileStatus.READY);
@@ -42,7 +43,7 @@ public class UserFileScanService {
         try {
             UserFileEntity file = getFileOrThrow(id);
             file.setStatus(FileStatus.INFECTED);
-            minio.deleteFile("incoming", file.getStorageKey());
+            minio.deleteFile(BucketName.INCOMING.value(), file.getStorageKey());
             fileRepo.save(file);
             log.info("VIRUS: {}", virusName);
         } catch (Exception e) {

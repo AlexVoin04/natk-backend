@@ -63,8 +63,8 @@ public class UserService {
     private void applyUpdate(UserEntity user, UserUpdateDto dto, UserEntity currentUser) {
         if (dto.name() != null) user.setName(dto.name());
         if (dto.surname() != null) user.setSurname(dto.surname());
-        if (dto.patronymic() != null) user.setPatronymic(dto.patronymic());
-        if (dto.phoneNumber() != null) user.setPhoneNumber(dto.phoneNumber());
+        user.setPatronymic(dto.patronymic() != null && dto.patronymic().isBlank() ? null : dto.patronymic());
+        user.setPhoneNumber(dto.phoneNumber() != null && dto.phoneNumber().isBlank() ? null : dto.phoneNumber());
 
         if (accessControlService.isAdmin(currentUser) && dto.roles() != null) {
             List<RoleEntity> newRoles = dto.roles().stream()

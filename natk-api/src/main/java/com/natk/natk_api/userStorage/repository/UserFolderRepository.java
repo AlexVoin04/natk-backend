@@ -25,6 +25,7 @@ public interface UserFolderRepository extends JpaRepository<UserFolderEntity, UU
     List<UserFolderEntity> findByIsDeletedTrueAndDeletedAtBefore(Instant cutoff);
 
     List<UserFolderEntity> findByUserAndParentFolderIsNullAndIsDeletedFalse(UserEntity user);
+    List<UserFolderEntity> findByUserAndParentFolderIsNullAndIsDeletedTrue(UserEntity user);
 
     @Query(value = """
         WITH RECURSIVE parents(id, parent_folder_id) AS (

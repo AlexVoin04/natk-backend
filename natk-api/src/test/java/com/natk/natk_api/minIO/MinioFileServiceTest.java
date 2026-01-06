@@ -1,5 +1,6 @@
 package com.natk.natk_api.minIO;
 
+import com.natk.natk_api.baseStorage.enums.BucketName;
 import com.natk.natk_api.minio.MinioFileService;
 import com.natk.natk_api.minio.MinioMetrics;
 import com.natk.natk_api.minio.MinioRetryableService;
@@ -58,7 +59,7 @@ class MinioFileServiceTest {
 
     @Test
     void uploadFile_createsBucketWhenMissing_putsObject_recordsMetrics() throws Exception {
-        String bucket = "incoming";
+        String bucket = BucketName.INCOMING.value();
         String objectKey = "k1";
         String mime = "application/pdf";
         byte[] bytes = "hello".getBytes(StandardCharsets.UTF_8);
@@ -96,7 +97,7 @@ class MinioFileServiceTest {
 
     @Test
     void uploadFile_bucketCached_bucketExistsCalledOnce() throws Exception {
-        String bucket = "incoming";
+        String bucket = BucketName.INCOMING.value();
         String objectKey1 = "k1";
         String objectKey2 = "k2";
 
@@ -114,7 +115,7 @@ class MinioFileServiceTest {
 
     @Test
     void uploadFile_whenPutObjectFails_recordsError_andThrowsRuntimeException() throws Exception {
-        String bucket = "incoming";
+        String bucket = BucketName.INCOMING.value();
         when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(true);
 
         doThrow(new RuntimeException("minio down"))
@@ -132,7 +133,7 @@ class MinioFileServiceTest {
 
     @Test
     void downloadFile_returnsStream_recordsDownloadMetrics() throws Exception {
-        String bucket = "user-files";
+        String bucket = BucketName.USER_FILES.value();
         String key = "obj";
         byte[] bytes = "data".getBytes(StandardCharsets.UTF_8);
 
@@ -149,7 +150,7 @@ class MinioFileServiceTest {
 
     @Test
     void downloadFileAsBytes_delegatesToDownload_andReadsAllBytes() throws Exception {
-        String bucket = "user-files";
+        String bucket = BucketName.USER_FILES.value();
         String key = "obj";
         byte[] bytes = "data".getBytes(StandardCharsets.UTF_8);
 
@@ -165,7 +166,7 @@ class MinioFileServiceTest {
 
     @Test
     void deleteFile_callsRemoveObject() throws Exception {
-        String bucket = "user-files";
+        String bucket = BucketName.USER_FILES.value();
         String key = "obj";
 
         when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(true);
@@ -182,7 +183,7 @@ class MinioFileServiceTest {
 
     @Test
     void deleteFiles_continuesOnError_doesNotThrow() throws Exception {
-        String bucket = "user-files";
+        String bucket = BucketName.USER_FILES.value();
         List<String> keys = List.of("k1", "k2", "k3");
 
         when(minioClient.bucketExists(any(BucketExistsArgs.class))).thenReturn(true);

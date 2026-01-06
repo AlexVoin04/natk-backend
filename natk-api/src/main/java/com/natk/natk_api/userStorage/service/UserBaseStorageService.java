@@ -152,4 +152,9 @@ public class UserBaseStorageService extends BaseStorageService<
     protected String extractName(UserStorageItemDto dto) {
         return dto.name();
     }
+
+    @Override
+    protected UserFolderEntity getParentFolder(UserFolderEntity folder) {
+        return folder != null ? folder.getParentFolder() : null;
+    }
 }

@@ -37,4 +37,13 @@ public interface DepartmentFolderRepository extends JpaRepository<DepartmentFold
     boolean isAncestor(@Param("childId") UUID childId, @Param("ancestorId") UUID ancestorId);
 
     List<DepartmentFolderEntity> findByIsDeletedTrueAndDeletedAtBefore(Instant cutoff);
+
+    List<DepartmentFolderEntity> findByDepartmentAndParentFolderAndIsDeletedTrue(
+            DepartmentEntity department,
+            DepartmentFolderEntity parent
+    );
+
+    List<DepartmentFolderEntity> findByDepartmentAndParentFolderIsNullAndIsDeletedTrue(
+            DepartmentEntity department
+    );
 }

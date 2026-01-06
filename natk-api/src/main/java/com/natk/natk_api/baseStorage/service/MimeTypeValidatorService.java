@@ -57,8 +57,8 @@ public class MimeTypeValidatorService {
         try {
             byte[] header = is.readNBytes(MAGIC_BYTES_LIMIT);
 
-            validate(header);
             String mime = detectMimeType(header, fileName);
+            validateMime(mime);
 
             return new MagicValidationResult(header, mime);
         }catch (Exception e){
@@ -66,13 +66,22 @@ public class MimeTypeValidatorService {
         }
     }
 
+    private void validateMime(String detectedMime) {
+        String base = detectedMime.split(";")[0].trim().toLowerCase();
+
+        if (MimeType.fromType(base).isEmpty()) {
+            throw new IllegalArgumentException("Unsupported file type: " + detectedMime);
+        }
+    }
+
     public void validate(byte[] fileData) {
         if (fileData.length > MAX_FILE_SIZE_BYTES) {
-            throw new IllegalArgumentException("File size exceeds 50MB limit");
+            throw new IllegalArgumentException("File size exceeds 200MB limit");
         }
 
         String mimeType = tika.detect(fileData);
-        if (MimeType.fromType(mimeType).isEmpty()) {
+        String baseType = mimeType.split(";")[0].trim();
+        if (MimeType.fromType(baseType).isEmpty()) {
             throw new IllegalArgumentException("Unsupported file type: " + mimeType);
         }
     }
