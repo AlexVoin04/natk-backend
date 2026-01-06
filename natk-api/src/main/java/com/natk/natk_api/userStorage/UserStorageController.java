@@ -1,6 +1,7 @@
 package com.natk.natk_api.userStorage;
 
 import com.natk.natk_api.baseStorage.PurgeStats;
+import com.natk.natk_api.baseStorage.dto.BulkDeleteResult;
 import com.natk.natk_api.baseStorage.dto.CreateFolderDto;
 import com.natk.natk_api.baseStorage.dto.FileDownloadDto;
 import com.natk.natk_api.baseStorage.dto.FolderTreeDto;
@@ -10,10 +11,12 @@ import com.natk.natk_api.baseStorage.dto.RenameFileDto;
 import com.natk.natk_api.baseStorage.dto.RenameFolderDto;
 import com.natk.natk_api.baseStorage.dto.SignedUrlResponse;
 import com.natk.natk_api.baseStorage.dto.UploadFileDto;
+import com.natk.natk_api.baseStorage.service.BulkDeleteService;
 import com.natk.natk_api.departmentStorage.dto.PurgeItemDto;
 import com.natk.natk_api.llms.dto.QuestionRequestDto;
 import com.natk.natk_api.llms.dto.QuestionResponseDto;
 import com.natk.natk_api.llms.service.QuestionGenerationService;
+import com.natk.natk_api.userStorage.context.UserDeletionContext;
 import com.natk.natk_api.userStorage.dto.FileInfoDto;
 import com.natk.natk_api.userStorage.dto.FolderContentResponseDto;
 import com.natk.natk_api.userStorage.dto.FolderDto;
@@ -54,6 +57,8 @@ public class UserStorageController {
     private final UserBaseStorageService userStorageService;
     private final QuestionGenerationService questionGenerationService;
     private final UserPurgeService userPurgeService;
+    private final BulkDeleteService bulkDeleteService;
+    private final UserDeletionContext userDeletionContext;
 
     @PostMapping("/folders")
     public FolderDto createFolder(@RequestBody CreateFolderDto dto) {
@@ -175,6 +180,12 @@ public class UserStorageController {
         return userStorageService.getStorageItems(folderId);
     }
 
+    @DeleteMapping("/items")
+    public ResponseEntity<BulkDeleteResult> deleteItems(@RequestBody List<PurgeItemDto> items) {
+        BulkDeleteResult result = bulkDeleteService.deleteMultiple(items, userDeletionContext);
+        return ResponseEntity.ok(result);
+    }
+
     @GetMapping("/bin")
     public List<UserDeletedItemDto> getBinItems() {
         return userStorageService.getDeletedItems();
@@ -196,6 +207,4 @@ public class UserStorageController {
     public PurgeStats purgeMultiple(@RequestBody List<PurgeItemDto> items) {
         return userPurgeService.purgeMultiple(items);
     }
-
-    //TODO: добавить просто очистку без items
 }

@@ -1,6 +1,18 @@
 package com.natk.natk_api.departmentStorage;
 
-import com.natk.natk_api.baseStorage.dto.*;
+import com.natk.natk_api.baseStorage.dto.BulkDeleteResult;
+import com.natk.natk_api.baseStorage.dto.CreateFolderDto;
+import com.natk.natk_api.baseStorage.dto.FileDownloadDto;
+import com.natk.natk_api.baseStorage.dto.FolderTreeDto;
+import com.natk.natk_api.baseStorage.dto.MoveFileDto;
+import com.natk.natk_api.baseStorage.dto.MoveFolderDto;
+import com.natk.natk_api.baseStorage.dto.RenameFileDto;
+import com.natk.natk_api.baseStorage.dto.RenameFolderDto;
+import com.natk.natk_api.baseStorage.dto.SignedUrlResponse;
+import com.natk.natk_api.baseStorage.dto.UploadFileDto;
+import com.natk.natk_api.baseStorage.intarfece.DeletionContext;
+import com.natk.natk_api.baseStorage.service.BulkDeleteService;
+import com.natk.natk_api.departmentStorage.context.DepartmentDeletionContextFactory;
 import com.natk.natk_api.departmentStorage.dto.DepartmentDeletedItemDto;
 import com.natk.natk_api.departmentStorage.dto.DepartmentFileInfoDto;
 import com.natk.natk_api.departmentStorage.dto.DepartmentFolderDto;
@@ -42,6 +54,8 @@ public class DepartmentStorageController {
     private final DepartmentBaseFileService departmentFileService;
     private final DepartmentBaseStorageService departmentStorageService;
     private final DepartmentPurgeService departmentPurgeService;
+    private final BulkDeleteService bulkDeleteService;
+    private final DepartmentDeletionContextFactory deptCtxFactory;
 
     @PostMapping("/folders")
     @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'ACCESS')")
@@ -209,6 +223,17 @@ public class DepartmentStorageController {
             @RequestParam(required = false) UUID folderId
     ) {
         return departmentStorageService.getStorageItems(folderId, departmentId);
+    }
+
+    @DeleteMapping("/items")
+    @PreAuthorize("hasPermission(#departmentId, 'DEPARTMENT', 'MANAGE')")
+    public ResponseEntity<BulkDeleteResult> deleteItems(
+            @PathVariable UUID departmentId,
+            @RequestBody List<PurgeItemDto> items
+    ) {
+        DeletionContext ctx = deptCtxFactory.forDepartment(departmentId);
+        BulkDeleteResult result = bulkDeleteService.deleteMultiple(items, ctx);
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/bin")
