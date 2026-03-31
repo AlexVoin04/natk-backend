@@ -6,6 +6,7 @@ import com.natk.natk_api.departmentStorage.dto.DepartmentDeletedItemDto;
 import com.natk.natk_api.departmentStorage.dto.DepartmentStorageItemDto;
 import com.natk.natk_api.departmentStorage.model.DepartmentFileEntity;
 import com.natk.natk_api.departmentStorage.model.DepartmentFolderEntity;
+import com.natk.natk_api.departmentStorage.repository.DepartmentStorageSearchRow;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -58,6 +59,19 @@ public class DepartmentStorageItemMapper extends AbstractStorageItemMapper<Depar
                 resolvePath(file.getFolder(), "Департамент/" + dept.getName(), DepartmentFolderEntity::isDeleted, DepartmentFolderEntity::getParentFolder, DepartmentFolderEntity::buildPath),
                 file.getFolder() != null ? file.getFolder().getId() : null,
                 file.getCreatedBy()
+        );
+    }
+
+    public DepartmentStorageItemDto fromSearchRow(DepartmentStorageSearchRow row) {
+        return new DepartmentStorageItemDto(
+                row.id(),
+                row.name(),
+                row.type(),
+                row.createdAt(),
+                row.updatedAt(),
+                row.createdBy(),
+                row.fileAntivirusStatus(),
+                row.size()
         );
     }
 }

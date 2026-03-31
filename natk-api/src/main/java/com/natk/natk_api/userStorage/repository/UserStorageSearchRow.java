@@ -1,0 +1,16 @@
+package com.natk.natk_api.userStorage.repository;
+
+import com.natk.natk_api.baseStorage.enums.FileStatus;
+
+import java.time.Instant;
+import java.util.UUID;
+
+public record UserStorageSearchRow(
+        UUID id,
+        String name,
+        String type,
+        Instant createdAt,
+        Instant updatedAt,
+        FileStatus fileAntivirusStatus,
+        Long size
+) {}

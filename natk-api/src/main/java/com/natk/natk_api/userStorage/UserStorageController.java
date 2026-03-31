@@ -11,6 +11,7 @@ import com.natk.natk_api.baseStorage.dto.RenameFileDto;
 import com.natk.natk_api.baseStorage.dto.RenameFolderDto;
 import com.natk.natk_api.baseStorage.dto.SignedUrlResponse;
 import com.natk.natk_api.baseStorage.dto.UploadFileDto;
+import com.natk.natk_api.baseStorage.enums.StorageSearchScope;
 import com.natk.natk_api.baseStorage.service.BulkDeleteService;
 import com.natk.natk_api.departmentStorage.dto.PurgeItemDto;
 import com.natk.natk_api.llms.dto.QuestionRequestDto;
@@ -184,6 +185,16 @@ public class UserStorageController {
     public ResponseEntity<BulkDeleteResult> deleteItems(@RequestBody List<PurgeItemDto> items) {
         BulkDeleteResult result = bulkDeleteService.deleteMultiple(items, userDeletionContext);
         return ResponseEntity.ok(result);
+    }
+
+    //TODO: folderId - задаток на поиск внутри папки
+    @GetMapping("/search")
+    public List<UserStorageItemDto> search(
+            @RequestParam String q,
+            @RequestParam(defaultValue = "BOTH") StorageSearchScope scope,
+            @RequestParam(required = false) UUID folderId
+    ) {
+        return userStorageService.searchItems(q, scope, folderId);
     }
 
     @GetMapping("/bin")

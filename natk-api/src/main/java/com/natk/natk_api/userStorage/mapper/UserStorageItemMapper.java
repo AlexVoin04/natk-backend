@@ -5,6 +5,7 @@ import com.natk.natk_api.userStorage.dto.UserDeletedItemDto;
 import com.natk.natk_api.userStorage.dto.UserStorageItemDto;
 import com.natk.natk_api.userStorage.model.UserFileEntity;
 import com.natk.natk_api.userStorage.model.UserFolderEntity;
+import com.natk.natk_api.userStorage.repository.UserStorageSearchRow;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -65,6 +66,18 @@ public class UserStorageItemMapper extends AbstractStorageItemMapper<UserFolderE
                         UserFolderEntity::buildPath
                 ),
                 file.getFolder() != null ? file.getFolder().getId() : null
+        );
+    }
+
+    public UserStorageItemDto fromSearchRow(UserStorageSearchRow row) {
+        return new UserStorageItemDto(
+                row.id(),
+                row.name(),
+                row.type(),
+                row.createdAt(),
+                row.updatedAt(),
+                row.fileAntivirusStatus(),
+                row.size()
         );
     }
 }
