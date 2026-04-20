@@ -2,6 +2,7 @@ package com.natk.natk_api.userStorage.service;
 
 import com.natk.natk_api.baseStorage.context.StorageContext;
 import com.natk.natk_api.baseStorage.context.UserContext;
+import com.natk.natk_api.baseStorage.enums.StorageSearchScope;
 import com.natk.natk_api.baseStorage.service.BaseStorageService;
 import com.natk.natk_api.userStorage.dto.UserDeletedItemDto;
 import com.natk.natk_api.userStorage.dto.FolderContentResponseDto;
@@ -11,6 +12,7 @@ import com.natk.natk_api.userStorage.model.UserFileEntity;
 import com.natk.natk_api.userStorage.model.UserFolderEntity;
 import com.natk.natk_api.userStorage.repository.UserFileRepository;
 import com.natk.natk_api.userStorage.repository.UserFolderRepository;
+import com.natk.natk_api.userStorage.repository.UserStorageSearchRepository;
 import com.natk.natk_api.users.model.UserEntity;
 import com.natk.natk_api.users.service.CurrentUserService;
 import org.springframework.security.access.AccessDeniedException;
@@ -33,17 +35,19 @@ public class UserBaseStorageService extends BaseStorageService<
     private final UserFileRepository fileRepo;
     private final UserStorageItemMapper mapper;
     private final CurrentUserService currentUserService;
+    private final UserStorageSearchRepository searchRepo;
 
     public UserBaseStorageService(
             UserFolderRepository folderRepo,
             UserFileRepository fileRepo,
             UserStorageItemMapper mapper,
-            CurrentUserService currentUserService
+            CurrentUserService currentUserService, UserStorageSearchRepository searchRepository
     ) {
         this.folderRepo = folderRepo;
         this.fileRepo = fileRepo;
         this.mapper = mapper;
         this.currentUserService = currentUserService;
+        this.searchRepo = searchRepository;
     }
 
     protected UserContext getContext() {
@@ -58,6 +62,15 @@ public class UserBaseStorageService extends BaseStorageService<
     @Transactional(readOnly = true)
     public List<UserDeletedItemDto> getDeletedItems() {
         return super.getDeletedItems(getContext());
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserStorageItemDto> searchItems(
+            String query,
+            StorageSearchScope scope,
+            UUID folderId
+    ) {
+        return super.searchItems(query, scope, folderId, getContext());
     }
 
     @Override
@@ -157,4 +170,36 @@ public class UserBaseStorageService extends BaseStorageService<
     protected UserFolderEntity getParentFolder(UserFolderEntity folder) {
         return folder != null ? folder.getParentFolder() : null;
     }
+
+    @Override
+    protected List<UserStorageItemDto> searchFolders(String query, UUID folderId, StorageContext ctx) {
+        UserEntity user = ((UserContext) ctx).user();
+
+        return searchRepo.searchFolders(user.getId(), query).stream()
+                .map(mapper::fromSearchRow)
+                .toList();
+    }
+
+    @Override
+    protected List<UserStorageItemDto> searchFiles(String query, UUID folderId, StorageContext ctx) {
+        UserEntity user = ((UserContext) ctx).user();
+
+        return searchRepo.searchFiles(user.getId(), query).stream()
+                .map(mapper::fromSearchRow)
+                .toList();
+    }
+
+    @Override
+    protected List<UserStorageItemDto> searchAll(
+            String query,
+            UUID folderId,
+            StorageContext ctx
+    ) {
+        UserEntity user = ((UserContext) ctx).user();
+
+        return searchRepo.searchAll(user.getId(), query).stream()
+                .map(mapper::fromSearchRow)
+                .toList();
+    }
+
 }

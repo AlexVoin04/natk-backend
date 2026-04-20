@@ -2,6 +2,7 @@ package com.natk.natk_api.departmentStorage.service;
 
 import com.natk.natk_api.baseStorage.context.DepartmentContext;
 import com.natk.natk_api.baseStorage.context.StorageContext;
+import com.natk.natk_api.baseStorage.enums.StorageSearchScope;
 import com.natk.natk_api.baseStorage.service.BaseStorageService;
 import com.natk.natk_api.department.model.DepartmentEntity;
 import com.natk.natk_api.department.permission.DepartmentAccessService;
@@ -12,6 +13,7 @@ import com.natk.natk_api.departmentStorage.model.DepartmentFileEntity;
 import com.natk.natk_api.departmentStorage.model.DepartmentFolderEntity;
 import com.natk.natk_api.departmentStorage.repository.DepartmentFileRepository;
 import com.natk.natk_api.departmentStorage.repository.DepartmentFolderRepository;
+import com.natk.natk_api.departmentStorage.repository.DepartmentStorageSearchRepository;
 import com.natk.natk_api.userStorage.dto.FolderContentResponseDto;
 import com.natk.natk_api.users.model.UserEntity;
 import com.natk.natk_api.users.service.CurrentUserService;
@@ -37,19 +39,21 @@ public class DepartmentBaseStorageService extends BaseStorageService<
     private final DepartmentStorageItemMapper mapper;
     private final CurrentUserService currentUserService;
     private final DepartmentAccessService departmentAccessService;
+    private final DepartmentStorageSearchRepository searchRepo;
 
     public DepartmentBaseStorageService(
             DepartmentFolderRepository folderRepo,
             DepartmentFileRepository fileRepo,
             DepartmentStorageItemMapper mapper,
             CurrentUserService currentUserService,
-            DepartmentAccessService departmentAccessService
+            DepartmentAccessService departmentAccessService, DepartmentStorageSearchRepository searchRepo
     ) {
         this.folderRepo = folderRepo;
         this.fileRepo = fileRepo;
         this.mapper = mapper;
         this.currentUserService = currentUserService;
         this.departmentAccessService = departmentAccessService;
+        this.searchRepo = searchRepo;
     }
 
     protected StorageContext getContext(UUID departmentId) {
@@ -66,6 +70,16 @@ public class DepartmentBaseStorageService extends BaseStorageService<
     @Transactional(readOnly = true)
     public List<DepartmentDeletedItemDto> getDeletedItems(UUID departmentId) {
         return super.getDeletedItems(getContext(departmentId));
+    }
+
+    @Transactional(readOnly = true)
+    public List<DepartmentStorageItemDto> searchItems(
+            String query,
+            StorageSearchScope scope,
+            UUID folderId,
+            UUID departmentId
+    ) {
+        return super.searchItems(query, scope, folderId, getContext(departmentId));
     }
 
     @Override
@@ -192,5 +206,40 @@ public class DepartmentBaseStorageService extends BaseStorageService<
     @Override
     protected DepartmentFolderEntity getParentFolder(DepartmentFolderEntity folder) {
         return folder != null ? folder.getParentFolder() : null;
+    }
+
+    @Override
+    protected List<DepartmentStorageItemDto> searchFolders(String query, UUID folderId, StorageContext ctx) {
+        DepartmentContext dCtx = (DepartmentContext) ctx;
+
+        return searchRepo.searchFolders(
+                dCtx.department().getId(),
+                dCtx.user().getId(),
+                query
+        ).stream().map(mapper::fromSearchRow).toList();
+    }
+
+    @Override
+    protected List<DepartmentStorageItemDto> searchFiles(String query, UUID folderId, StorageContext ctx) {
+        DepartmentContext dCtx = (DepartmentContext) ctx;
+
+        return searchRepo.searchFiles(
+                dCtx.department().getId(),
+                dCtx.user().getId(),
+                query
+        ).stream().map(mapper::fromSearchRow).toList();
+    }
+
+    @Override
+    protected List<DepartmentStorageItemDto> searchAll(String query, UUID folderId, StorageContext ctx) {
+        DepartmentContext dCtx = (DepartmentContext) ctx;
+
+        return searchRepo.searchAll(
+                        dCtx.department().getId(),
+                        dCtx.user().getId(),
+                        query
+                ).stream()
+                .map(mapper::fromSearchRow)
+                .toList();
     }
 }

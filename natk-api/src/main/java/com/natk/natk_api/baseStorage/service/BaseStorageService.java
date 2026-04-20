@@ -1,6 +1,8 @@
 package com.natk.natk_api.baseStorage.service;
 
 import com.natk.natk_api.baseStorage.context.StorageContext;
+import com.natk.natk_api.baseStorage.enums.StorageSearchScope;
+import com.natk.natk_api.baseStorage.intarfece.BaseStorageItemDto;
 import com.natk.natk_api.userStorage.dto.FolderContentResponseDto;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,7 +17,7 @@ import java.util.stream.Stream;
 public abstract class BaseStorageService<
         TFolder,
         TFile,
-        TItemDto,
+        TItemDto extends BaseStorageItemDto,
         TDeletedDto
         > {
 
@@ -131,5 +133,35 @@ public abstract class BaseStorageService<
                 pathIdsList.toArray(String[]::new),
                 pathNamesList.toArray(String[]::new)
         );
+    }
+
+    @Transactional(readOnly = true, timeout = 3)
+    public List<TItemDto> searchItems(
+            String query,
+            StorageSearchScope scope,
+            UUID folderId,
+            StorageContext ctx
+    ) {
+        String q = normalizeQuery(query);
+
+        if (q.length() < 2) {
+            throw new IllegalArgumentException("Search query must be at least 2 characters");
+        }
+
+        return switch (scope) {
+            case FILES -> searchFiles(q, folderId, ctx);
+            case FOLDERS -> searchFolders(q, folderId, ctx);
+            case BOTH -> searchAll(q, folderId, ctx);
+        };
+    }
+
+    protected abstract List<TItemDto> searchFolders(String query, UUID folderId, StorageContext ctx);
+    protected abstract List<TItemDto> searchFiles(String query, UUID folderId, StorageContext ctx);
+
+    //обязательно должен быть ОДИН SQL с UNION, не 2 запроса - не забыть
+    protected abstract List<TItemDto> searchAll(String query, UUID folderId, StorageContext ctx);
+
+    private String normalizeQuery(String q) {
+        return q == null ? "" : q.trim();
     }
 }
