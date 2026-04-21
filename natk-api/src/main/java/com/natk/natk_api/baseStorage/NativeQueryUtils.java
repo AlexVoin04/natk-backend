@@ -19,7 +19,7 @@ public class NativeQueryUtils {
 
     public static Object getValue(Object[] tuple, Map<String, Integer> indexMap, String name) {
         Integer index = indexMap.get(name.toLowerCase());
-        if (index == null) return null; // Или бросай Exception, если колонка обязательна
+        if (index == null) return null;
         return tuple[index];
     }
 
