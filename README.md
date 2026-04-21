@@ -73,7 +73,7 @@ Copy `.env.example` to `.env` then run:
 From the root of the project, run:
 
 ```shell
-docker-compose -f docker-compose.yml up --build
+docker compose -f docker-compose.yml up
 ```
 
 This will:
@@ -102,12 +102,12 @@ Build images manually:
 
 🌐 Build natk-api image
 ```shell
-./gradlew :natk-api:jibDockerBuild  --image=natk-api:0.4.2
+./gradlew :natk-api:jibDockerBuild  --image=natk-api:0.6.0
 ```
 
 📄 Build natk-pdf image
 ```shell
-docker build -t natk-pdf:0.1.0 ./natk-pdf
+docker build -t natk-pdf:0.2.0 ./natk-pdf
 ```
 
 🤖 Build natk-ai image
