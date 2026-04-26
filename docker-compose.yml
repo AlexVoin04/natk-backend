@@ -29,7 +29,7 @@ services:
       retries: 5
 
   natk-auth:
-    image: '${REGISTRY:-}natk-auth:0.1.2'
+    image: '${REGISTRY:-}natk-auth:0.2.0'
     ports:
       - "8001:8080"
     environment:
@@ -39,6 +39,16 @@ services:
       - JDBC_URL=${JDBC_URL}
       - DB_DRIVER=${DB_DRIVER}
       - JWT_SECRET=${JWT_SECRET}
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_PASS=${RABBITMQ_DEFAULT_PASS}
+      - FRONTEND_RESET_PASSWORD_URL=${FRONTEND_RESET_PASSWORD_URL}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - MAIL_FROM=${MAIL_FROM}
     depends_on:
       db:
         condition: service_healthy

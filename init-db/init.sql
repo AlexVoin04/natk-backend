@@ -166,6 +166,19 @@ CREATE TABLE storage_purge_audit (
     folders_deleted INT NOT NULL DEFAULT 0
 );
 
+CREATE TABLE password_reset_tokens (
+    id uuid PRIMARY KEY,
+    user_id uuid NOT NULL REFERENCES users(id),
+    token_hash VARCHAR(64) NOT NULL UNIQUE,
+    created_at timestamptz NOT NULL,
+    expires_at timestamptz NOT NULL,
+    used_at timestamptz NULL
+);
+
+-- Индексы для сброса пароля
+CREATE INDEX idx_password_reset_token_hash ON password_reset_tokens(token_hash);
+CREATE INDEX idx_password_reset_token_expires_at ON password_reset_tokens(expires_at);
+
 -- Индексы для аудитов удаления
 CREATE INDEX idx_storage_purge_audit_user_id ON storage_purge_audit(user_id);
 CREATE INDEX idx_storage_purge_audit_department_id ON storage_purge_audit(department_id);

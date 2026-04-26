@@ -6,6 +6,8 @@ import com.example.natk_auth.entity.RoleEntity;
 import com.example.natk_auth.entity.UserEntity;
 import com.example.natk_auth.repository.RoleRepository;
 import com.example.natk_auth.repository.UserRepository;
+import com.example.natk_auth.service.AuthService;
+import com.example.natk_auth.service.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,7 +36,8 @@ class AuthServiceTest {
     RoleRepository roleRepository;
     @Mock
     PasswordEncoder passwordEncoder;
-    @Mock JwtService jwtService;
+    @Mock
+    JwtService jwtService;
 
     private AuthService service;
 

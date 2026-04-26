@@ -3,6 +3,8 @@ package com.example.natk_auth;
 import com.example.natk_auth.dto.TokenDto;
 import com.example.natk_auth.dto.UserCredentialsDto;
 import com.example.natk_auth.entity.UserEntity;
+import com.example.natk_auth.service.AuthService;
+import com.example.natk_auth.service.JwtService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;

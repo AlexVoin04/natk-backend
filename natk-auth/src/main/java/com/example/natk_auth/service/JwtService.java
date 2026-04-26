@@ -1,4 +1,4 @@
-package com.example.natk_auth;
+package com.example.natk_auth.service;
 
 import com.example.natk_auth.entity.UserEntity;
 import io.jsonwebtoken.Claims;
