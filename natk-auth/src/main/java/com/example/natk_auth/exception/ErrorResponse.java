@@ -1,4 +1,4 @@
-package com.example.natk_auth;
+package com.example.natk_auth.exception;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;

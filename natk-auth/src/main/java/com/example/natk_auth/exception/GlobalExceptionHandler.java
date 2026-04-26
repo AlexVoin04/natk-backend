@@ -1,4 +1,4 @@
-package com.example.natk_auth;
+package com.example.natk_auth.exception;
 
 import com.example.natk_auth.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,7 +16,22 @@ import java.util.NoSuchElementException;
 public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex, HttpServletRequest request) {
-        return buildErrorResponse(ex, HttpStatus.BAD_REQUEST, request);
+        String message = ex.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .map(err -> err.getField() + ": " + err.getDefaultMessage())
+                .findFirst()
+                .orElse("Validation error");
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .timestamp(OffsetDateTime.now().toString())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
+                .message(message)
+                .path(request.getRequestURI())
+                .build();
+
+        return ResponseEntity.badRequest().body(errorResponse);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
