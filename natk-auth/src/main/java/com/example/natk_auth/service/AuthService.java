@@ -1,7 +1,8 @@
 package com.example.natk_auth.service;
 
+import com.example.natk_auth.dto.LoginRequestDto;
 import com.example.natk_auth.dto.TokenDto;
-import com.example.natk_auth.dto.UserCredentialsDto;
+import com.example.natk_auth.dto.RegisterRequestDto;
 import com.example.natk_auth.dto.UserDto;
 import com.example.natk_auth.entity.RoleEntity;
 import com.example.natk_auth.entity.UserEntity;
@@ -11,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import com.example.natk_auth.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -24,17 +26,19 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
-    public void register(UserCredentialsDto dto) {
+    @Transactional
+    public void register(RegisterRequestDto dto) {
         if (userRepository.findByLogin(dto.login()).isPresent())
             throw new IllegalArgumentException("User already exists");
 
         UserEntity user = createUser(dto);
-        assignRolesToUser(user, dto.roles());
+        assignDefaultRole(user);
+//        assignRolesToUser(user, dto.roles());//пока подумать надо ли оно
         userRepository.save(user);
         log.info("Registered new user: username='{}', userId={}, roles={}", user.getName(), user.getId(), user.getRoles());
     }
 
-    private UserEntity createUser(UserCredentialsDto dto) {
+    private UserEntity createUser(RegisterRequestDto dto) {
         UserEntity user = new UserEntity();
         user.setId(UUID.randomUUID());
         user.setLogin(dto.login());
@@ -58,8 +62,7 @@ public class AuthService {
         user.setRoles(roles);
     }
 
-    public TokenDto login(UserCredentialsDto dto) {
-        log.info("Login attempt: username='{}'", dto.login());
+    public TokenDto login(LoginRequestDto dto) {
         UserEntity user = userRepository.findByLogin(dto.login())
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid login or password"));
 
@@ -80,9 +83,15 @@ public class AuthService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
     }
 
-    public class InvalidCredentialsException extends RuntimeException {
+    public static class InvalidCredentialsException extends RuntimeException {
         public InvalidCredentialsException(String message) {
             super(message);
         }
+    }
+
+    private void assignDefaultRole(UserEntity user) {
+        RoleEntity role = roleRepository.findByName("TEACHER")
+                .orElseThrow();
+        user.setRoles(List.of(role));
     }
 }

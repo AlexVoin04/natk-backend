@@ -1,7 +1,8 @@
 package com.example.natk_auth;
 
+import com.example.natk_auth.dto.LoginRequestDto;
 import com.example.natk_auth.dto.TokenDto;
-import com.example.natk_auth.dto.UserCredentialsDto;
+import com.example.natk_auth.dto.RegisterRequestDto;
 import com.example.natk_auth.entity.RoleEntity;
 import com.example.natk_auth.entity.UserEntity;
 import com.example.natk_auth.repository.RoleRepository;
@@ -48,7 +49,7 @@ class AuthServiceTest {
 
     @Test
     void register_whenUserExists_throws() {
-        UserCredentialsDto dto = new UserCredentialsDto("login", "pass", "n", "s", null, List.of("USER"));
+        RegisterRequestDto dto = new RegisterRequestDto("login", "pass", "n", "s", null, List.of("USER"));
         when(userRepository.findByLogin("login")).thenReturn(Optional.of(new UserEntity()));
 
         assertThrows(IllegalArgumentException.class, () -> service.register(dto));
@@ -57,7 +58,7 @@ class AuthServiceTest {
 
     @Test
     void register_ok_encodesPassword_assignsRoles_savesUser() {
-        UserCredentialsDto dto = new UserCredentialsDto("login", "pass", "n", "s", null, List.of("USER"));
+        RegisterRequestDto dto = new RegisterRequestDto("login", "pass", "n", "s", null, List.of("USER"));
 
         when(userRepository.findByLogin("login")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("pass")).thenReturn("ENC");
@@ -81,13 +82,13 @@ class AuthServiceTest {
 
     @Test
     void login_whenPasswordMismatch_throwsInvalidCredentials() {
-        UserCredentialsDto dto = new UserCredentialsDto("login", "bad", "n", "s", null, List.of("USER"));
+        LoginRequestDto dto = new LoginRequestDto("login@mail.ru", "bad");
 
         UserEntity user = new UserEntity();
-        user.setLogin("login");
+        user.setLogin("login@mail.ru");
         user.setPassword("HASH");
 
-        when(userRepository.findByLogin("login")).thenReturn(Optional.of(user));
+        when(userRepository.findByLogin("login@mail.ru")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("bad", "HASH")).thenReturn(false);
 
         assertThrows(AuthService.InvalidCredentialsException.class, () -> service.login(dto));
@@ -96,14 +97,14 @@ class AuthServiceTest {
 
     @Test
     void login_ok_returnsTokenFromJwtService() {
-        UserCredentialsDto dto = new UserCredentialsDto("login", "pass", "n", "s", null, List.of("USER"));
+        LoginRequestDto dto = new LoginRequestDto("login@mail.ru", "pass");
 
         UserEntity user = new UserEntity();
         user.setId(java.util.UUID.randomUUID());
-        user.setLogin("login");
+        user.setLogin("login@mail.ru");
         user.setPassword("HASH");
 
-        when(userRepository.findByLogin("login")).thenReturn(Optional.of(user));
+        when(userRepository.findByLogin("login@mail.ru")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("pass", "HASH")).thenReturn(true);
         when(jwtService.generateToken(user)).thenReturn("JWT");
 

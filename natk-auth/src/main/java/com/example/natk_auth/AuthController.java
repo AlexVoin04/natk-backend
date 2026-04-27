@@ -1,10 +1,7 @@
 package com.example.natk_auth;
 
-import com.example.natk_auth.dto.ForgotPasswordRequestDto;
-import com.example.natk_auth.dto.ResetPasswordRequestDto;
+import com.example.natk_auth.dto.*;
 import com.example.natk_auth.service.JwtService;
-import com.example.natk_auth.dto.TokenDto;
-import com.example.natk_auth.dto.UserCredentialsDto;
 import com.example.natk_auth.entity.UserEntity;
 import com.example.natk_auth.service.AuthService;
 import com.example.natk_auth.service.PasswordResetService;
@@ -29,13 +26,13 @@ public class AuthController {
     private final PasswordResetService passwordResetService;
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody UserCredentialsDto dto) {
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequestDto dto) {
         authService.register(dto);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/login")
-    public ResponseEntity<TokenDto> login(@RequestBody UserCredentialsDto dto) {
+    public ResponseEntity<TokenDto> login(@Valid @RequestBody LoginRequestDto dto) {
         return ResponseEntity.ok(authService.login(dto));
     }
 

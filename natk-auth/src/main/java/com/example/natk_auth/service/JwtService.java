@@ -25,6 +25,7 @@ public class JwtService {
     @PostConstruct
     public void init() {
         this.key = Keys.hmacShaKeyFor(secret.getBytes());
+        //TODO: рассмотреть Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret)); т.к. если секрет короче 32 байт прод упадёт
     }
 
     public String generateToken(UserEntity user) {
