@@ -158,6 +158,8 @@ services:
     container_name: natk-clamav
     ports:
       - "3310:3310"
+    volumes:
+      - ./clamav/etc/clamav/clamd.conf:/etc/clamav/clamd.conf:ro
     networks:
       - natk-net
     healthcheck:
