@@ -1,6 +1,7 @@
 package com.example.natk_auth;
 
 import com.example.natk_auth.entity.UserEntity;
+import com.example.natk_auth.service.JwtService;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;

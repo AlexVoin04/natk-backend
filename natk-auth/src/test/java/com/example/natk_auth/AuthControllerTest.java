@@ -1,8 +1,11 @@
 package com.example.natk_auth;
 
+import com.example.natk_auth.dto.LoginRequestDto;
 import com.example.natk_auth.dto.TokenDto;
-import com.example.natk_auth.dto.UserCredentialsDto;
+import com.example.natk_auth.dto.RegisterRequestDto;
 import com.example.natk_auth.entity.UserEntity;
+import com.example.natk_auth.service.AuthService;
+import com.example.natk_auth.service.JwtService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -46,7 +49,7 @@ class AuthControllerTest {
 
     @Test
     void register_ok_callsService() throws Exception {
-        UserCredentialsDto dto = new UserCredentialsDto(
+        RegisterRequestDto dto = new RegisterRequestDto(
                 "login",
                 "pass",
                 "Ivan",
@@ -60,7 +63,7 @@ class AuthControllerTest {
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isOk());
 
-        ArgumentCaptor<UserCredentialsDto> captor = ArgumentCaptor.forClass(UserCredentialsDto.class);
+        ArgumentCaptor<RegisterRequestDto> captor = ArgumentCaptor.forClass(RegisterRequestDto.class);
         verify(authService).register(captor.capture());
         assertEquals("login", captor.getValue().login());
         verifyNoMoreInteractions(authService);
@@ -68,7 +71,7 @@ class AuthControllerTest {
 
     @Test
     void login_ok_returnsToken() throws Exception {
-        UserCredentialsDto dto = new UserCredentialsDto(
+        RegisterRequestDto dto = new RegisterRequestDto(
                 "login",
                 "pass",
                 "Ivan",
@@ -86,7 +89,7 @@ class AuthControllerTest {
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.accessToken").value("jwt-token"));
 
-        verify(authService).login(any(UserCredentialsDto.class));
+        verify(authService).login(any(LoginRequestDto.class));
         verifyNoMoreInteractions(authService);
     }
 

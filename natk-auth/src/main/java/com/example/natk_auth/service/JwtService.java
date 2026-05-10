@@ -1,4 +1,4 @@
-package com.example.natk_auth;
+package com.example.natk_auth.service;
 
 import com.example.natk_auth.entity.UserEntity;
 import io.jsonwebtoken.Claims;
@@ -25,6 +25,7 @@ public class JwtService {
     @PostConstruct
     public void init() {
         this.key = Keys.hmacShaKeyFor(secret.getBytes());
+        //TODO: рассмотреть Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret)); т.к. если секрет короче 32 байт прод упадёт
     }
 
     public String generateToken(UserEntity user) {
