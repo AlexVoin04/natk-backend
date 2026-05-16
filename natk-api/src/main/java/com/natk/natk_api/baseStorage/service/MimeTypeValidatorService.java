@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class MimeTypeValidatorService {
@@ -23,20 +24,41 @@ public class MimeTypeValidatorService {
     public enum MimeType {
         PDF("application/pdf", false),
         DOCX("application/vnd.openxmlformats-officedocument.wordprocessingml.document", true),
+        DOC("application/msword", true),
         XLSX("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", true),
         XLS("application/vnd.ms-excel", true),
         PPTX("application/vnd.openxmlformats-officedocument.presentationml.presentation", true),
-        OOXML("application/x-tika-ooxml", true),
+        PPT("application/vnd.ms-powerpoint", true),
+        ODT("application/vnd.oasis.opendocument.text", true),
+        ODS("application/vnd.oasis.opendocument.spreadsheet", true),
+        ODP("application/vnd.oasis.opendocument.presentation", true),
+        RTF("application/rtf", true),
         TXT("text/plain", true),
+        CSV("text/csv", true),
+        HTML("text/html", true),
+        OOXML("application/x-tika-ooxml", true),
+        TEXT_XML("text/xml", true),
+        JSON("application/json", true),
+        XML("application/xml", true),
+
         PNG("image/png", true),
         JPEG("image/jpeg", true),
-        XML("application/xml", true),
-        TEXT_XML("text/xml", true),
+        JPG("image/jpg", true),
+        GIF("image/gif", true),
+        WEBP("image/webp", true),
+        BMP("image/bmp", true),
+        SVG("image/svg+xml", true),
+
         ZIP("application/zip", false),
         RAR("application/x-rar-compressed", false),
         SEVEN_Z("application/x-7z-compressed", false),
         TAR("application/x-tar", false),
-        GZIP("application/gzip", false);
+        GZIP("application/gzip", false),
+
+        MP3("audio/mpeg", false),
+        WAV("audio/wav", false),
+        MP4("video/mp4", false),
+        MOV("video/quicktime", false);
 
         private final String type;
         private final boolean convertibleToPdf;
@@ -53,6 +75,17 @@ public class MimeTypeValidatorService {
         }
     }
 
+    private static final Set<String> FORBIDDEN_MIME_PREFIXES = Set.of(
+            "application/x-dosexec",
+            "application/x-msdownload",
+            "application/x-sh",
+            "application/x-bat",
+            "application/x-powershell",
+            "application/java-archive",
+            "application/x-mach-binary",
+            "application/x-elf"
+    );
+
     public MagicValidationResult validate(InputStream is, String fileName) {
         try {
             byte[] header = is.readNBytes(MAGIC_BYTES_LIMIT);
@@ -67,23 +100,30 @@ public class MimeTypeValidatorService {
     }
 
     private void validateMime(String detectedMime) {
-        String base = detectedMime.split(";")[0].trim().toLowerCase();
+        String base = normalizeMime(detectedMime);
 
-        if (MimeType.fromType(base).isEmpty()) {
-            throw new IllegalArgumentException("Unsupported file type: " + detectedMime);
+        boolean forbidden = FORBIDDEN_MIME_PREFIXES.stream()
+                .anyMatch(base::startsWith);
+
+        if (forbidden) {
+            throw new IllegalArgumentException("Executable files are not allowed: " + detectedMime);
         }
     }
 
-    public void validate(byte[] fileData) {
+    private String normalizeMime(String mime) {
+        if (mime == null) {
+            return "";
+        }
+        return mime.split(";")[0].trim().toLowerCase();
+    }
+
+    public void validate(byte[] fileData, String fileName) {
         if (fileData.length > MAX_FILE_SIZE_BYTES) {
             throw new IllegalArgumentException("File size exceeds 200MB limit");
         }
 
-        String mimeType = tika.detect(fileData);
-        String baseType = mimeType.split(";")[0].trim();
-        if (MimeType.fromType(baseType).isEmpty()) {
-            throw new IllegalArgumentException("Unsupported file type: " + mimeType);
-        }
+        String mimeType = detectMimeType(fileData, fileName);
+        validateMime(mimeType);
     }
 
     public String detectMimeType(byte[] fileData, String fileName) {
