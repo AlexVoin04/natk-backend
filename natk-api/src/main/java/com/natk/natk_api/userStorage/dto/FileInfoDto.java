@@ -1,5 +1,6 @@
 package com.natk.natk_api.userStorage.dto;
 
+import com.natk.natk_api.baseStorage.enums.FileStatus;
 import com.natk.natk_api.baseStorage.intarfece.BaseFileDto;
 
 import java.time.Instant;
@@ -15,5 +16,6 @@ public record FileInfoDto(
         Instant deletedAt,
         String path,
         long fileSize,
-        String storageKey
+        String storageKey,
+        FileStatus status
 ) implements BaseFileDto {}

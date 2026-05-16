@@ -1,5 +1,6 @@
 package com.natk.natk_api.departmentStorage.dto;
 
+import com.natk.natk_api.baseStorage.enums.FileStatus;
 import com.natk.natk_api.baseStorage.intarfece.BaseFileDto;
 
 import java.time.Instant;
@@ -16,5 +17,6 @@ public record DepartmentFileInfoDto(
         String path,
         String user,
         long fileSize,
-        String storageKey
+        String storageKey,
+        FileStatus status
 ) implements BaseFileDto {}
