@@ -30,7 +30,8 @@ public class DepartmentFileMapper {
                 path,
                 entity.getCreatedBy(),
                 entity.getFileSize(),
-                entity.getStorageKey()
+                entity.getStorageKey(),
+                entity.getStatus()
         );
     }
 }
