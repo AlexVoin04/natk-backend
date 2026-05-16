@@ -178,6 +178,7 @@ public class MinioFileService {
         return "user/%s/file/%s".formatted(userId, randomKey);
     }
 
+    //TODO: не слать в инкоминг, а просто по статусу определять :(
     public String generateIncomingUserFileKey(UUID userId) {
         String randomKey = keyGenerator.generate256BitKey();
         return "incoming/user/%s/file/%s".formatted(userId, randomKey);
