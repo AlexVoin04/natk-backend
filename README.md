@@ -192,6 +192,19 @@ When updating the antivirus database:
 docker compose restart clamav 
 ```
 
+### Automated Updates Without FreshClam (Regional Restrictions Friendly)
+If direct access to `database.clamav.net` is blocked or unstable (e.g., regional restrictions), you can mirror the databases via GitHub Releases (using a GitHub Actions workflow) and configure your server to download updates from GitHub instead.
+On the server, add a cron job that runs once per day:
+```bash
+cd /path/to/clamav/db
+
+wget -N https://github.com/<USER>/<REPO>/releases/latest/download/main.cvd
+wget -N https://github.com/<USER>/<REPO>/releases/latest/download/daily.cvd
+wget -N https://github.com/<USER>/<REPO>/releases/latest/download/bytecode.cvd
+
+docker restart natk-clamav
+```
+
 ___
 # 🐇 RabbitMQ — Message Broker for Antivirus
 

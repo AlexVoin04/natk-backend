@@ -1,0 +1,73 @@
+name: Update ClamAV DB
+
+on:
+  schedule:
+    - cron: "0 */12 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y  jq curl
+
+      - name: Download official CVD files
+        run: |
+          mkdir db
+          curl -L -o db/main.cvd https://database.clamav.net/main.cvd
+          curl -L -o db/daily.cvd https://database.clamav.net/daily.cvd
+          curl -L -o db/bytecode.cvd https://database.clamav.net/bytecode.cvd
+
+      - name: Compute checksum
+        id: sha
+        run: |
+          sha256sum db/* | sort | sha256sum | awk '{print "sha="$1}' >> $GITHUB_OUTPUT
+          
+      - name: Get latest release checksum
+        id: latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          latest=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || true)
+          if [ -z "$latest" ]; then
+            echo "sha=" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          gh release download "$latest" -p checksums.txt -D latest_release 2>/dev/null || true
+          if [ -f latest_release/checksums.txt ]; then
+            sha256sum latest_release/checksums.txt | awk '{print "sha="$1}' >> $GITHUB_OUTPUT
+          else
+            echo "sha=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Save checksums
+        run: sha256sum db/* | sort > checksums.txt
+
+      - name: Create release tag
+        if: steps.sha.outputs.sha != steps.latest.outputs.sha
+        id: tag
+        run: echo "tag=clamav-db-$(date +'%Y%m%d-%H%M')" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        if: steps.sha.outputs.sha != steps.latest.outputs.sha
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: ClamAV DB ${{ steps.tag.outputs.tag }}
+          files: |
+            db/main.cvd
+            db/daily.cvd
+            db/bytecode.cvd
+            checksums.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
