@@ -102,7 +102,7 @@ Build images manually:
 
 🌐 Build natk-api image
 ```shell
-./gradlew :natk-api:jibDockerBuild  --image=natk-api:0.7.0
+./gradlew :natk-api:jibDockerBuild  --image=natk-api:0.7.1
 ```
 
 📄 Build natk-pdf image
@@ -143,6 +143,68 @@ NATK uses a distributed antivirus scanning architecture based on RabbitMQ and Cl
 5. **natk-antivirus** notifies natk-api via internal REST callback.
 
 This allows **fully asynchronous, fault-tolerant, and scalable** antivirus scanning.
+
+---
+
+### 📦 ClamAV Database (Important Note)
+
+In this architecture, **FreshClam is disabled inside containers** (`CLAMAV_NO_FRESHCLAMD=true`) and the antivirus database is managed **locally**.
+
+This is required because:
+- FreshClam may be rate-limited (HTTP 429 / 403) by the ClamAV CDN
+- CDN access can be unstable depending on network conditions
+- The system is designed to be fully deterministic and offline-capable
+- The virus database is mounted locally into the container (`./clamav/db:/var/lib/clamav`)
+
+Because of this design, **the ClamAV database must be updated manually or via an external updater process**.
+
+---
+
+### ⬇️ Manual Database Updates
+
+To keep virus definitions up to date, the following files must be downloaded manually:
+
+- https://database.clamav.net/main.cvd
+- https://database.clamav.net/daily.cvd
+- https://database.clamav.net/bytecode.cvd
+
+These files must be placed into:
+
+```bash
+./clamav/db/
+```
+
+and will be mounted into the container at:
+
+```bash
+/var/lib/clamav
+```
+
+___
+
+### 🔁 Update Process
+
+When updating the antivirus database:
+1. Download the latest `.cvd` files from the official ClamAV database endpoints
+2. Replace the existing files in `./clamav/db/`
+3. Restart the ClamAV container:
+```bash
+docker compose restart clamav 
+```
+
+### Automated Updates Without FreshClam (Regional Restrictions Friendly)
+If direct access to `database.clamav.net` is blocked or unstable (e.g., regional restrictions), you can mirror the databases via GitHub Releases (using a GitHub Actions workflow) and configure your server to download updates from GitHub instead.
+On the server, add a cron job that runs once per day:
+```bash
+cd /path/to/clamav/db
+
+wget -N https://github.com/<USER>/<REPO>/releases/latest/download/main.cvd
+wget -N https://github.com/<USER>/<REPO>/releases/latest/download/daily.cvd
+wget -N https://github.com/<USER>/<REPO>/releases/latest/download/bytecode.cvd
+
+docker restart natk-clamav
+```
+
 ___
 # 🐇 RabbitMQ — Message Broker for Antivirus
 

@@ -1,6 +1,6 @@
 services:
   natk-frontend:
-    image: '${REGISTRY:-}natk-frontend:0.7.0'
+    image: '${REGISTRY:-}natk-frontend:0.7.1'
     ports:
       - "8088:80"
     networks:
@@ -159,14 +159,20 @@ services:
     ports:
       - "3310:3310"
     volumes:
-      - ./clamav/etc/clamav/clamd.conf:/etc/clamav/clamd.conf:ro
+      - ./clamav/db:/var/lib/clamav
+    environment:
+      - CLAMAV_NO_FRESHCLAMD=true
+      - CLAMD_CONF_StreamMaxLength=300M
+      - CLAMD_CONF_MaxFileSize=1000M
+      - CLAMD_CONF_MaxScanSize=1000M
     networks:
       - natk-net
     healthcheck:
-      test: [ "CMD", "nc", "-z", "localhost", "3310" ]
-      interval: 10s
-      timeout: 5s
-      retries: 20
+      test: ["CMD-SHELL", "echo 'PING' | nc -w 5 localhost 3310 | grep -q 'PONG'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
   rabbitmq:
     image: rabbitmq:4-management
