@@ -135,6 +135,7 @@ public class MinioFileService {
     }
 
     public void copyObjectServerSide(String bucket, String sourceKey, String targetKey) throws Exception {
+        ensureBucketExists(bucket);
         retryable.copyObject(
                 CopyObjectArgs.builder()
                         .bucket(bucket)
@@ -146,6 +147,8 @@ public class MinioFileService {
 
     public void copyObjectServerSide(String sourceBucket, String sourceKey,
                                      String targetBucket, String targetKey) throws Exception {
+        ensureBucketExists(sourceBucket);
+        ensureBucketExists(targetBucket);
         retryable.copyObject(
                 CopyObjectArgs.builder()
                         .bucket(targetBucket)

@@ -49,7 +49,7 @@ class AuthServiceTest {
 
     @Test
     void register_whenUserExists_throws() {
-        RegisterRequestDto dto = new RegisterRequestDto("login", "pass", "n", "s", null, List.of("USER"));
+        RegisterRequestDto dto = new RegisterRequestDto("login", "pass", "n", "s", null, List.of("TEACHER"));
         when(userRepository.findByLogin("login")).thenReturn(Optional.of(new UserEntity()));
 
         assertThrows(IllegalArgumentException.class, () -> service.register(dto));
@@ -58,14 +58,14 @@ class AuthServiceTest {
 
     @Test
     void register_ok_encodesPassword_assignsRoles_savesUser() {
-        RegisterRequestDto dto = new RegisterRequestDto("login", "pass", "n", "s", null, List.of("USER"));
+        RegisterRequestDto dto = new RegisterRequestDto("login", "pass", "n", "s", null, List.of("TEACHER"));
 
         when(userRepository.findByLogin("login")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("pass")).thenReturn("ENC");
 
         RoleEntity role = new RoleEntity();
         role.setName("USER");
-        when(roleRepository.findByName("USER")).thenReturn(Optional.of(role));
+        when(roleRepository.findByName("TEACHER")).thenReturn(Optional.of(role));
 
         service.register(dto);
 
