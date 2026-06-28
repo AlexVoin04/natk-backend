@@ -56,7 +56,7 @@ services:
       - natk-net
 
   natk-api:
-    image: '${REGISTRY:-}natk-api:0.7.1'
+    image: '${REGISTRY:-}natk-api:0.7.2'
     ports:
       - "8000:8080"
     environment:

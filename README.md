@@ -102,7 +102,7 @@ Build images manually:
 
 🌐 Build natk-api image
 ```shell
-./gradlew :natk-api:jibDockerBuild  --image=natk-api:0.7.1
+./gradlew :natk-api:jibDockerBuild  --image=natk-api:0.7.2
 ```
 
 📄 Build natk-pdf image
