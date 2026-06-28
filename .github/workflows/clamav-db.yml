@@ -1,9 +1,7 @@
 name: Update ClamAV DB
 
 on:
-  schedule:
-    - cron: "0 */12 * * *"
-  workflow_dispatch:
+  workflow_dispatch: # Оставляем только ручной запуск
 
 permissions:
   contents: write
@@ -16,23 +14,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install
+      - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y  jq curl
+          sudo apt-get install -y jq
+          # Устанавливаем официальную утилиту ClamAV для скачивания баз
+          pip install cvdupdate
 
       - name: Download official CVD files
         run: |
           mkdir db
-          curl -L -o db/main.cvd https://database.clamav.net/main.cvd
-          curl -L -o db/daily.cvd https://database.clamav.net/daily.cvd
-          curl -L -o db/bytecode.cvd https://database.clamav.net/bytecode.cvd
+          # Настраиваем директорию и скачиваем базы через cvdupdate
+          cvd config set --dbdir db
+          cvd update
 
       - name: Compute checksum
         id: sha
+        # Указываем явно .cvd, так как cvdupdate может создавать служебные файлы (например, dns.txt)
         run: |
-          sha256sum db/* | sort | sha256sum | awk '{print "sha="$1}' >> $GITHUB_OUTPUT
-          
+          sha256sum db/*.cvd | sort | sha256sum | awk '{print "sha="$1}' >> $GITHUB_OUTPUT
+
       - name: Get latest release checksum
         id: latest
         env:
@@ -51,7 +52,7 @@ jobs:
           fi
 
       - name: Save checksums
-        run: sha256sum db/* | sort > checksums.txt
+        run: sha256sum db/*.cvd | sort > checksums.txt
 
       - name: Create release tag
         if: steps.sha.outputs.sha != steps.latest.outputs.sha
