@@ -1,7 +1,7 @@
 name: Update ClamAV DB
 
 on:
-  workflow_dispatch: # Оставляем только ручной запуск
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -18,19 +18,31 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y jq
-          # Устанавливаем официальную утилиту ClamAV для скачивания баз
           pip install cvdupdate
 
       - name: Download official CVD files
         run: |
-          mkdir db
-          # Настраиваем директорию и скачиваем базы через cvdupdate
+          mkdir -p db
           cvd config set --dbdir db
-          cvd update
+          
+          for i in {1..5}; do
+            echo "Attempt $i..."
+            if cvd update; then
+              echo "Download successful!"
+              break
+            fi
+            echo "Download failed. Retrying in 15 seconds..."
+            sleep 15
+          done
+          
+          # Проверяем, скачался ли main.cvd в итоге
+          if [ ! -f "db/main.cvd" ]; then
+            echo "Error: main.cvd is missing!"
+            exit 1
+          fi
 
       - name: Compute checksum
         id: sha
-        # Указываем явно .cvd, так как cvdupdate может создавать служебные файлы (например, dns.txt)
         run: |
           sha256sum db/*.cvd | sort | sha256sum | awk '{print "sha="$1}' >> $GITHUB_OUTPUT
 
